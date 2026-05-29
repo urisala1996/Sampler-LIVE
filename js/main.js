@@ -5,13 +5,16 @@ import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile } from './session.js';
 import { initDjEvents, activateDj, deactivateDj } from './dj.js';
+import { icon } from './icons.js';
 
 function toggleEditMode() {
   state.editMode = !state.editMode;
   document.body.classList.toggle('edit-mode', state.editMode);
   const btn = document.getElementById('editModeBtn');
   btn.classList.toggle('active', state.editMode);
-  btn.textContent = state.editMode ? '✅ DONE' : '✏️ EDIT';
+  btn.innerHTML = state.editMode
+    ? `${icon('check', 11)} DONE`
+    : `${icon('pencil', 11)} EDIT`;
   document.getElementById('editHint').classList.toggle('show', state.editMode);
   document.getElementById('tapHint').textContent = state.editMode ? 'TAP PAD TO EDIT' : 'TAP TO PLAY';
 }

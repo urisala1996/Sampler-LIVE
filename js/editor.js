@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { formatTime, formatTimeMs, showToast, clamp } from './utils.js';
 import { stopAll, updatePadTimeLabel } from './pads.js';
+import { icon } from './icons.js';
 
 // ── Open / close ──────────────────────────────────────────────────────────────
 
@@ -60,14 +61,14 @@ function drawWaveform() {
   const bars = Math.floor(W / 3);
   const barW = W / bars;
 
-  ctx.fillStyle = '#222';
+  ctx.fillStyle = '#f0ede8';
   ctx.fillRect(0, 0, W, H);
 
   for (let i = 0; i < bars; i++) {
     const h = (0.15 + rng(i) * 0.7) * H;
     const y = (H - h) / 2;
-    const alpha = 0.25 + rng(i + 1000) * 0.4;
-    ctx.fillStyle = `rgba(200,255,0,${alpha})`;
+    const alpha = 0.18 + rng(i + 1000) * 0.30;
+    ctx.fillStyle = `rgba(15,14,12,${alpha})`;
     ctx.fillRect(i * barW + 1, y, barW - 1, h);
   }
 }
@@ -122,7 +123,7 @@ export function previewSample() {
 
   state.isPreviewing = true;
   const btn = document.getElementById('previewBtn');
-  btn.textContent = '■ STOP';
+  btn.innerHTML = `${icon('stop', 14)} STOP`;
   btn.classList.add('previewing');
 
   state.player.seekTo(state.editorCurrentTime, true);
@@ -135,7 +136,7 @@ export function stopPreview() {
   state.isPreviewing = false;
   const btn = document.getElementById('previewBtn');
   if (btn) {
-    btn.textContent = '▶ PREVIEW';
+    btn.innerHTML = `${icon('play', 14)} PREVIEW`;
     btn.classList.remove('previewing');
   }
   if (state.player && state.player.pauseVideo) state.player.pauseVideo();

@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { formatTime } from './utils.js';
+import { icon } from './icons.js';
 
 // Injected by main.js to avoid circular dep with editor.js
 let _openEditor = () => {};
@@ -24,7 +25,7 @@ export function renderEmptyPads() {
     pad.className = 'pad';
     pad.innerHTML = `
       <div class="pad-num">P${String(i + 1).padStart(2, '0')}</div>
-      <div class="pad-icon">+</div>
+      <div class="pad-icon">${icon('plus', 16)}</div>
       <div class="pad-time">—:——</div>
       <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
     `;
@@ -43,7 +44,7 @@ export function renderPads() {
     pad.dataset.index = i;
     pad.innerHTML = `
       <div class="pad-num">P${String(i + 1).padStart(2, '0')}</div>
-      <div class="pad-edit-icon">✏️</div>
+      <div class="pad-edit-icon">${icon('pencil', 10)}</div>
       <div class="pad-time" id="padtime${i}">${formatTime(startSec)}</div>
       <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
     `;
@@ -122,7 +123,9 @@ export function triggerPad(index, padEl) {
 
   document.getElementById('statusDot').className = 'status-dot playing';
   document.getElementById('playingPad').textContent = `PAD ${index + 1} · ${formatTime(seekTo)}`;
-  document.getElementById('stopBtn').className = 'stop-btn active';
+  const stopBtn = document.getElementById('stopBtn');
+  stopBtn.className = 'stop-btn active';
+  stopBtn.innerHTML = icon('stop', 14);
 
   const bar = document.getElementById('bar' + index);
   const dur = state.padDurations[index] ?? state.padDuration;
@@ -149,7 +152,9 @@ export function stopAll() {
   if (state.player && state.player.pauseVideo) state.player.pauseVideo();
   document.getElementById('statusDot').className = state.songLoaded ? 'status-dot ready' : 'status-dot';
   document.getElementById('playingPad').textContent = '—';
-  document.getElementById('stopBtn').className = 'stop-btn';
+  const stopBtn = document.getElementById('stopBtn');
+  stopBtn.className = 'stop-btn';
+  stopBtn.innerHTML = icon('stop', 14);
 }
 
 // ── Config controls ───────────────────────────────────────────────────────────

@@ -15,7 +15,10 @@
     <button class="toggle-opt" id="djModeBtn">DJ</button>
   </div>
   <div class="header-right">
-    <button class="edit-mode-btn" id="editModeBtn">✏️ EDIT</button>
+    <button class="edit-mode-btn" id="editModeBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+      EDIT
+    </button>
     <div class="status-dot" id="statusDot"></div>
   </div>
 </div>
@@ -45,8 +48,14 @@
     <span class="duration-val" id="durVal">2s</span>
   </div>
   <div class="session-row">
-    <button class="session-btn" id="importBtn">↑ IMPORT</button>
-    <button class="session-btn" id="exportBtn">↓ EXPORT</button>
+    <button class="session-btn" id="importBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      IMPORT
+    </button>
+    <button class="session-btn" id="exportBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      EXPORT
+    </button>
   </div>
 </div>
 
@@ -58,13 +67,15 @@
 </div>
 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
-<div class="edit-hint" id="editHint">✏️ TAP ANY PAD TO MOVE ITS SAMPLE POINT</div>
+<div class="edit-hint" id="editHint">TAP ANY PAD TO MOVE ITS SAMPLE POINT</div>
 
 <!-- SAMPLER VIEW -->
 <div class="pad-zone" id="padZone">
   <div class="pad-grid grid-4" id="padGrid"></div>
   <div class="transport">
-    <button class="stop-btn" id="stopBtn">■</button>
+    <button class="stop-btn" id="stopBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+    </button>
     <div class="playing-info"><span id="playingPad">—</span> ready</div>
     <div class="tap-hint" id="tapHint">TAP TO PLAY</div>
   </div>
@@ -76,7 +87,9 @@
   <!-- Shown until an audio file is loaded -->
   <div class="dj-upload" id="djUpload">
     <div class="dj-drop-zone" id="djDropZone">
-      <div class="dj-upload-icon">♫</div>
+      <div class="dj-upload-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
       <div class="dj-upload-title">DROP AN AUDIO FILE</div>
       <div class="dj-upload-sub">MP3 · WAV · OGG · FLAC · M4A</div>
       <button class="dj-browse-btn" id="djBrowseBtn">BROWSE FILES</button>
@@ -91,7 +104,9 @@
     </div>
     <div class="dj-transport">
       <span class="dj-time" id="djCurrentTime">0:00</span>
-      <button class="dj-play-btn" id="djPlayBtn">▶</button>
+      <button class="dj-play-btn" id="djPlayBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21"/></svg>
+      </button>
       <span class="dj-time dj-time-total" id="djTotalTime">0:00</span>
     </div>
   </div>
@@ -110,7 +125,9 @@
       <div class="sheet-pad-badge" id="sheetPadBadge">P01</div>
       <div class="sheet-pad-name">Sample Point</div>
     </div>
-    <div class="sheet-close" id="sheetClose">×</div>
+    <div class="sheet-close" id="sheetClose">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </div>
   </div>
 
   <div class="timeline-section">
@@ -151,8 +168,14 @@
   </div>
 
   <div class="sheet-actions">
-    <button class="preview-btn" id="previewBtn">▶ PREVIEW</button>
-    <button class="confirm-btn" id="confirmBtn">✓ SET POINT</button>
+    <button class="preview-btn" id="previewBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21"/></svg>
+      PREVIEW
+    </button>
+    <button class="confirm-btn" id="confirmBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      SET POINT
+    </button>
   </div>
 </div>
 

@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { formatTime, clamp, showToast, setLoading } from './utils.js';
+import { icon } from './icons.js';
 
 const SECONDS_PER_REV = 8;      // 1 full spin = 8 s of audio
 const INERTIA_DECAY   = 0.88;   // velocity multiplier per frame
@@ -196,7 +197,7 @@ export function renderWheel() {
   ctx.arc(0, 0, labelR, 0, Math.PI * 2);
   ctx.fillStyle = '#1a1a1a';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(200,255,0,0.18)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -207,11 +208,9 @@ export function renderWheel() {
 
   ctx.beginPath();
   ctx.arc(outerR * 0.87, 0, 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#c8ff00';
-  ctx.shadowBlur  = 10;
-  ctx.shadowColor = 'rgba(200,255,0,0.7)';
+  ctx.fillStyle = '#f7f5f0';
+  ctx.shadowBlur  = 0;
   ctx.fill();
-  ctx.shadowBlur = 0;
 
   ctx.restore();
 
@@ -220,13 +219,11 @@ export function renderWheel() {
   const startAngle = -Math.PI / 2;
   ctx.beginPath();
   ctx.arc(cx, cy, outerR - 2, startAngle, startAngle + progress * Math.PI * 2);
-  ctx.strokeStyle = '#c8ff00';
+  ctx.strokeStyle = '#f7f5f0';
   ctx.lineWidth   = 3;
   ctx.lineCap     = 'round';
-  ctx.shadowBlur  = 8;
-  ctx.shadowColor = 'rgba(200,255,0,0.5)';
-  ctx.stroke();
   ctx.shadowBlur  = 0;
+  ctx.stroke();
 
   const labelR2  = outerR * 0.27;
   const maxChars = Math.floor(labelR2 * 0.18);
@@ -235,7 +232,7 @@ export function renderWheel() {
   const label    = hasAudio
     ? (raw.length > maxChars ? raw.slice(0, maxChars - 1) + '…' : raw || '—')
     : 'DROP A FILE';
-  ctx.fillStyle    = hasAudio ? '#c8ff00' : '#444';
+  ctx.fillStyle    = hasAudio ? '#f7f5f0' : '#666';
   ctx.font         = `bold ${Math.max(9, Math.floor(labelR2 * 0.22))}px "Space Mono", monospace`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
@@ -251,7 +248,7 @@ function updateTimeDisplay(t) {
 
 function updatePlayBtn() {
   const btn = document.getElementById('djPlayBtn');
-  if (btn) btn.textContent = state.djIsPlaying ? '⏸' : '▶';
+  if (btn) btn.innerHTML = state.djIsPlaying ? icon('pause', 20) : icon('play', 20);
 }
 
 // ── Playback animation loop ───────────────────────────────────────────────────

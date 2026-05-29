@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MPC Sampler</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --surface3: #282828;
+    --border: #2a2a2a;
+    --accent: #c8ff00;
+    --accent-dim: rgba(200,255,0,0.12);
+    --accent-glow: rgba(200,255,0,0.25);
+    --text: #f0f0f0;
+    --text-muted: #666;
+    --text-dim: #999;
+    --pad-idle: #1a1a1a;
+    --pad-active: #c8ff00;
+    --pad-playing: #ff6b35;
+    --red: #ff4444;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted);
+    transition: background 0.3s;
+  }
+  .status-dot.ready { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+  .status-dot.playing { background: var(--pad-playing); box-shadow: 0 0 8px rgba(255,107,53,0.4); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* CONFIG ZONE */
+  .config {
+    padding: 16px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .url-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .url-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: var(--text-muted); }
+
+  .load-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .load-btn:active { transform: scale(0.97); opacity: 0.85; }
+  .load-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .params-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .param-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .param-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .param-controls { display: flex; gap: 4px; margin-top: 4px; }
+  .param-btn {
+    width: 28px; height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .param-btn:active { background: var(--surface3); transform: scale(0.94); }
+
+  .duration-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .duration-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  .duration-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* WAVEFORM / INFO BAR */
+  .info-bar {
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+  }
+  .song-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .song-title.loaded { color: var(--text); }
+  .duration-badge {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 3px;
+    background: var(--surface3);
+    position: relative;
+    overflow: visible;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.5s linear;
+  }
+
+  /* PAD GRID */
+  .pad-zone {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pad-grid {
+    display: grid;
+    gap: 10px;
+    flex: 1;
+  }
+  .grid-4  { grid-template-columns: repeat(4, 1fr); }
+  .grid-3  { grid-template-columns: repeat(3, 1fr); }
+  .grid-2  { grid-template-columns: repeat(2, 1fr); }
+
+  .pad {
+    aspect-ratio: 1;
+    background: var(--pad-idle);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.08s, border-color 0.15s;
+    gap: 4px;
+  }
+
+  .pad::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.08s;
+    border-radius: inherit;
+  }
+
+  .pad.loaded {
+    border-color: #333;
+    cursor: pointer;
+  }
+
+  .pad.pressed::before { opacity: 0.15; }
+  .pad.pressed { transform: scale(0.94); }
+
+  .pad.playing {
+    border-color: var(--pad-playing);
+    animation: pad-play 0.4s ease;
+  }
+  .pad.playing::before { opacity: 0.08; background: var(--pad-playing); }
+
+  @keyframes pad-play {
+    0% { transform: scale(0.94); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  .pad-num {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text-muted);
+    position: absolute;
+    top: 7px;
+    left: 8px;
+    letter-spacing: 0.04em;
+    z-index: 1;
+  }
+
+  .pad-time {
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    color: var(--text-dim);
+    z-index: 1;
+    transition: color 0.15s;
+  }
+
+  .pad.loaded .pad-time { color: var(--accent); }
+  .pad.playing .pad-time { color: var(--pad-playing); }
+
+  .pad-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: transparent;
+    z-index: 2;
+  }
+  .pad-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.05s linear;
+    border-radius: 0;
+  }
+  .pad.playing .pad-bar-fill { background: var(--pad-playing); }
+
+  .pad-icon {
+    font-size: 18px;
+    color: var(--surface3);
+    z-index: 1;
+  }
+  .pad.loaded .pad-icon { display: none; }
+
+  /* TRANSPORT */
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 4px;
+  }
+  .stop-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 18px;
+    width: 42px; height: 42px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .stop-btn:active { background: var(--surface3); transform: scale(0.94); }
+  .stop-btn.active { border-color: var(--red); color: var(--red); }
+
+  .playing-info {
+    flex: 1;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .playing-info span { color: var(--accent); }
+
+  .tap-hint {
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* YOUTUBE HIDDEN */
+  #yt-container {
+    position: fixed;
+    bottom: -300px;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* ERROR / TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #ff4444;
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    transition: transform 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--accent); color: #000; }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.show { display: flex; }
+  .loader {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loader-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">MPC<span>.web</span></div>
+  <div class="status-dot" id="statusDot"></div>
+</div>
+
+<div class="config">
+  <div class="url-row">
+    <input class="url-input" id="urlInput" type="text"
+      placeholder="https://www.youtube.com/watch?v=..."
+      autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="load-btn" id="loadBtn" onclick="loadSong()">LOAD</button>
+  </div>
+
+  <div class="params-row">
+    <div class="param-group">
+      <div class="param-label">PADS</div>
+      <div class="param-value" id="padCountVal">8</div>
+      <div class="param-controls">
+        <button class="param-btn" onclick="changePads(-4)">−4</button>
+        <button class="param-btn" onclick="changePads(-1)">−</button>
+        <button class="param-btn" onclick="changePads(1)">+</button>
+        <button class="param-btn" onclick="changePads(4)">+4</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="duration-row">
+    <span class="duration-label">DURACIÓN PAD</span>
+    <input type="range" id="durSlider" min="0.5" max="8" step="0.5" value="2" oninput="updateDur()">
+    <span class="duration-val" id="durVal">2s</span>
+  </div>
+</div>
+
+<div class="info-bar">
+  <div class="song-title" id="songTitle">Pega una URL de YouTube y pulsa LOAD</div>
+  <div class="duration-badge" id="totalDur" style="display:none"></div>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<div class="pad-zone">
+  <div class="pad-grid grid-4" id="padGrid"></div>
+  <div class="transport">
+    <button class="stop-btn" id="stopBtn" onclick="stopAll()" title="Stop">■</button>
+    <div class="playing-info" id="playingInfo">
+      <span id="playingPad">—</span> listo
+    </div>
+    <div class="tap-hint">TAP TO PLAY</div>
+  </div>
+</div>
+
+<div id="yt-container">
+  <div id="player"></div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader"></div>
+  <div class="loader-text" id="loaderText">CARGANDO...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let player = null;
+let ytReady = false;
+let songLoaded = false;
+let songDuration = 0;
+let padCount = 8;
+let padDuration = 2;
+let pads = [];
+let currentPad = null;
+let padTimer = null;
+let padProgressInterval = null;
+let padStartTime = 0;
+
+// ─── YOUTUBE API LOADER ───────────────────────────────────────────────────────
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+  document.getElementById('statusDot').className = 'status-dot ready';
+};
+
+(function loadYTScript() {
+  // Warn if opened as file://
+  if (location.protocol === 'file:') {
+    setTimeout(() => {
+      showToast('⚠️ Abre desde un servidor, no file://');
+    }, 800);
+  }
+
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  tag.onerror = () => showToast('No se pudo cargar YouTube API. Comprueba tu conexión.');
+  document.head.appendChild(tag);
+
+  // Fallback: check every 500ms up to 10s
+  let attempts = 0;
+  const check = setInterval(() => {
+    attempts++;
+    if (ytReady || attempts > 20) { clearInterval(check); return; }
+    if (window.YT && window.YT.Player) {
+      ytReady = true;
+      document.getElementById('statusDot').className = 'status-dot ready';
+      clearInterval(check);
+    }
+  }, 500);
+})();
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function extractVideoId(url) {
+  const patterns = [
+    /[?&]v=([^&#]+)/,
+    /youtu\.be\/([^?&#]+)/,
+    /embed\/([^?&#]+)/,
+    /shorts\/([^?&#]+)/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function formatTime(sec) {
+  sec = Math.floor(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function showToast(msg, type = 'error') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'success' ? ' success' : '');
+  setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function setLoading(show, text = 'CARGANDO...') {
+  document.getElementById('loaderText').textContent = text;
+  document.getElementById('loadingOverlay').className = show ? 'loading-overlay show' : 'loading-overlay';
+}
+
+// ─── PARAMS ───────────────────────────────────────────────────────────────────
+function changePads(delta) {
+  padCount = Math.max(1, Math.min(16, padCount + delta));
+  document.getElementById('padCountVal').textContent = padCount;
+  if (songLoaded) distributePads();
+  else renderEmptyPads();
+}
+
+function updateDur() {
+  padDuration = parseFloat(document.getElementById('durSlider').value);
+  document.getElementById('durVal').textContent = padDuration + 's';
+}
+
+// ─── GRID LAYOUT ──────────────────────────────────────────────────────────────
+function getGridCols(count) {
+  if (count <= 2) return 'grid-2';
+  if (count <= 6) return 'grid-3';
+  return 'grid-4';
+}
+
+function renderEmptyPads() {
+  const grid = document.getElementById('padGrid');
+  grid.className = 'pad-grid ' + getGridCols(padCount);
+  grid.innerHTML = '';
+  for (let i = 0; i < padCount; i++) {
+    const pad = document.createElement('div');
+    pad.className = 'pad';
+    pad.innerHTML = `
+      <div class="pad-num">P${String(i+1).padStart(2,'0')}</div>
+      <div class="pad-icon">+</div>
+      <div class="pad-time">—:——</div>
+      <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
+    `;
+    grid.appendChild(pad);
+  }
+}
+
+// ─── LOAD SONG ────────────────────────────────────────────────────────────────
+function loadSong() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { showToast('Pega una URL de YouTube'); return; }
+  const videoId = extractVideoId(url);
+  if (!videoId) { showToast('URL de YouTube no válida'); return; }
+
+  if (!ytReady) {
+    // Retry up to 8s
+    setLoading(true, 'ESPERANDO YOUTUBE API...');
+    let waited = 0;
+    const wait = setInterval(() => {
+      waited += 500;
+      if (ytReady) {
+        clearInterval(wait);
+        setLoading(false);
+        loadSong();
+      } else if (waited >= 8000) {
+        clearInterval(wait);
+        setLoading(false);
+        showToast('YouTube API no responde. ¿Hay conexión a internet?');
+      }
+    }, 500);
+    return;
+  }
+
+  setLoading(true, 'INICIANDO REPRODUCTOR...');
+  document.getElementById('loadBtn').disabled = true;
+  stopAll();
+
+  if (player) {
+    player.destroy();
+    player = null;
+  }
+
+  setTimeout(() => {
+    try {
+      player = new YT.Player('player', {
+        height: '200',
+        width: '320',
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          rel: 0,
+          origin: window.location.origin || 'https://localhost'
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onStateChange,
+          onError: onPlayerError
+        }
+      });
+    } catch(e) {
+      setLoading(false);
+      document.getElementById('loadBtn').disabled = false;
+      showToast('Error iniciando player: ' + e.message);
+    }
+  }, 200);
+}
+
+function onPlayerReady(event) {
+  setLoading(true, 'OBTENIENDO DURACIÓN...');
+  // Play briefly to get duration (some videos need this)
+  event.target.mute();
+  event.target.playVideo();
+  setTimeout(() => {
+    const dur = event.target.getDuration();
+    if (dur > 0) {
+      finishLoad(dur, event.target);
+    } else {
+      // wait a bit more
+      setTimeout(() => {
+        const dur2 = event.target.getDuration();
+        finishLoad(dur2 || 180, event.target);
+      }, 2000);
+    }
+  }, 1500);
+}
+
+function finishLoad(dur, playerRef) {
+  playerRef.pauseVideo();
+  playerRef.seekTo(0);
+  playerRef.unMute();
+
+  songDuration = dur;
+  songLoaded = true;
+
+  const title = player.getVideoData ? player.getVideoData().title : 'Canción cargada';
+  const titleEl = document.getElementById('songTitle');
+  titleEl.textContent = title || 'Canción cargada';
+  titleEl.className = 'song-title loaded';
+
+  const durBadge = document.getElementById('totalDur');
+  durBadge.style.display = '';
+  durBadge.textContent = formatTime(dur);
+
+  document.getElementById('statusDot').className = 'status-dot ready';
+  setLoading(false);
+  document.getElementById('loadBtn').disabled = false;
+  distributePads();
+  showToast('¡Canción lista! Toca los pads', 'success');
+}
+
+function onStateChange(event) {
+  // Nothing needed for MVP
+}
+
+function onPlayerError(event) {
+  setLoading(false);
+  document.getElementById('loadBtn').disabled = false;
+  const codes = {2:'URL incorrecta',5:'Error HTML5',100:'Vídeo no encontrado',101:'Reproducción no permitida',150:'Reproducción no permitida'};
+  showToast('Error: ' + (codes[event.data] || 'código ' + event.data));
+  document.getElementById('statusDot').className = 'status-dot';
+}
+
+// ─── DISTRIBUTE PADS ──────────────────────────────────────────────────────────
+function distributePads() {
+  if (!songLoaded) return;
+
+  // Leave 10% at start and 10% at end as margin
+  const margin = songDuration * 0.05;
+  const usable = songDuration - margin * 2;
+  const step = usable / padCount;
+
+  pads = [];
+  for (let i = 0; i < padCount; i++) {
+    pads.push(margin + step * i + (step * 0.1)); // slight offset into segment
+  }
+
+  renderPads();
+}
+
+function renderPads() {
+  const grid = document.getElementById('padGrid');
+  grid.className = 'pad-grid ' + getGridCols(padCount);
+  grid.innerHTML = '';
+
+  pads.forEach((startSec, i) => {
+    const pad = document.createElement('div');
+    pad.className = 'pad loaded';
+    pad.dataset.index = i;
+    pad.innerHTML = `
+      <div class="pad-num">P${String(i+1).padStart(2,'0')}</div>
+      <div class="pad-time">${formatTime(startSec)}</div>
+      <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
+    `;
+
+    // Touch + mouse events
+    pad.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      pad.classList.add('pressed');
+      triggerPad(i, pad);
+    });
+    pad.addEventListener('pointerup', () => pad.classList.remove('pressed'));
+    pad.addEventListener('pointerleave', () => pad.classList.remove('pressed'));
+
+    grid.appendChild(pad);
+  });
+}
+
+// ─── TRIGGER PAD ─────────────────────────────────────────────────────────────
+function triggerPad(index, padEl) {
+  if (!songLoaded || !player) return;
+
+  // Clear previous
+  clearPadState();
+
+  currentPad = { index, el: padEl };
+  padEl.classList.add('playing');
+  padStartTime = Date.now();
+
+  const seekTo = pads[index];
+  player.seekTo(seekTo, true);
+  player.playVideo();
+
+  document.getElementById('statusDot').className = 'status-dot playing';
+  document.getElementById('playingPad').textContent = `PAD ${index + 1} · ${formatTime(seekTo)}`;
+  document.getElementById('stopBtn').className = 'stop-btn active';
+
+  // Progress bar inside pad
+  const bar = document.getElementById('bar' + index);
+  const totalMs = padDuration * 1000;
+
+  padProgressInterval = setInterval(() => {
+    const elapsed = Date.now() - padStartTime;
+    const pct = Math.min(100, (elapsed / totalMs) * 100);
+    if (bar) bar.style.width = pct + '%';
+  }, 50);
+
+  // Auto stop after padDuration
+  padTimer = setTimeout(() => {
+    stopAll();
+  }, padDuration * 1000);
+
+  // Haptic if available
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function clearPadState() {
+  if (padTimer) { clearTimeout(padTimer); padTimer = null; }
+  if (padProgressInterval) { clearInterval(padProgressInterval); padProgressInterval = null; }
+
+  // Reset all pads visually
+  document.querySelectorAll('.pad.playing').forEach(p => {
+    p.classList.remove('playing');
+  });
+  document.querySelectorAll('.pad-bar-fill').forEach(b => {
+    b.style.width = '0%';
+  });
+  currentPad = null;
+}
+
+function stopAll() {
+  clearPadState();
+  if (player && player.pauseVideo) {
+    player.pauseVideo();
+  }
+  document.getElementById('statusDot').className = songLoaded ? 'status-dot ready' : 'status-dot';
+  document.getElementById('playingPad').textContent = '—';
+  document.getElementById('stopBtn').className = 'stop-btn';
+}
+
+// ─── KEYBOARD SUPPORT ────────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  const keys = ['q','w','e','r','a','s','d','f','z','x','c','v','1','2','3','4'];
+  const idx = keys.indexOf(e.key.toLowerCase());
+  if (idx >= 0 && idx < pads.length) {
+    const padEls = document.querySelectorAll('.pad.loaded');
+    if (padEls[idx]) {
+      padEls[idx].classList.add('pressed');
+      triggerPad(idx, padEls[idx]);
+      setTimeout(() => padEls[idx].classList.remove('pressed'), 150);
+    }
+  }
+  if (e.key === ' ' || e.key === 'Escape') {
+    e.preventDefault();
+    stopAll();
+  }
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderEmptyPads();
+updateDur();
+</script>
+</body>
+</html>

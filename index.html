@@ -1,433 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MPC Sampler</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
-
-  :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1e1e1e;
-    --surface3: #282828;
-    --border: #2a2a2a;
-    --accent: #c8ff00;
-    --accent-dim: rgba(200,255,0,0.12);
-    --accent-glow: rgba(200,255,0,0.25);
-    --text: #f0f0f0;
-    --text-muted: #666;
-    --text-dim: #999;
-    --pad-idle: #1a1a1a;
-    --pad-playing: #ff6b35;
-    --red: #ff4444;
-    --radius: 10px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-    user-select: none;
-  }
-
-  /* HEADER */
-  .header {
-    padding: 16px 20px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--accent); }
-  .logo span { color: var(--text-muted); font-weight: 400; }
-  .header-right { display: flex; align-items: center; gap: 10px; }
-  .edit-mode-btn {
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    padding: 5px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text-muted);
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    transition: all 0.2s;
-  }
-  .edit-mode-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--text-muted);
-    transition: background 0.3s;
-  }
-  .status-dot.ready { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-  .status-dot.playing { background: var(--pad-playing); box-shadow: 0 0 8px rgba(255,107,53,0.4); animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-
-  /* CONFIG */
-  .config {
-    padding: 16px 20px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-  .url-row { display: flex; gap: 8px; }
-  .url-input {
-    flex: 1; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text);
-    font-family: 'Space Mono', monospace; font-size: 12px;
-    padding: 10px 14px; outline: none; transition: border-color 0.2s; min-width: 0;
-  }
-  .url-input:focus { border-color: var(--accent); }
-  .url-input::placeholder { color: var(--text-muted); }
-  .load-btn {
-    background: var(--accent); color: #000; border: none;
-    border-radius: var(--radius); font-family: 'Syne', sans-serif;
-    font-weight: 700; font-size: 13px; padding: 10px 16px;
-    cursor: pointer; white-space: nowrap; transition: opacity 0.2s, transform 0.1s;
-    letter-spacing: 0.02em;
-  }
-  .load-btn:active { transform: scale(0.97); opacity: 0.85; }
-  .load-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .params-row { display: flex; gap: 12px; align-items: center; }
-  .param-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-  .param-label { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
-  .param-value { font-size: 18px; font-weight: 800; color: var(--accent); line-height: 1; }
-  .param-controls { display: flex; gap: 4px; margin-top: 4px; }
-  .param-btn {
-    width: 28px; height: 28px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 6px;
-    color: var(--text-dim); font-size: 16px; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .param-btn:active { background: var(--surface3); transform: scale(0.94); }
-  .duration-row { display: flex; align-items: center; gap: 10px; }
-  .duration-label { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
-  input[type=range] { -webkit-appearance: none; flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; outline: none; cursor: pointer; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 6px var(--accent-glow); }
-  .duration-val { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--accent); min-width: 36px; text-align: right; }
-
-  /* INFO BAR */
-  .info-bar {
-    padding: 10px 20px; background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px; min-height: 44px;
-    flex-shrink: 0;
-  }
-  .song-title { font-size: 12px; color: var(--text-dim); font-family: 'Space Mono', monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .song-title.loaded { color: var(--text); }
-  .duration-badge { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--accent); background: var(--accent-dim); padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
-  .progress-bar { height: 3px; background: var(--surface3); flex-shrink: 0; }
-  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s linear; }
-
-  /* EDIT MODE HINT */
-  .edit-hint {
-    display: none;
-    padding: 8px 20px;
-    background: var(--accent-dim);
-    border-bottom: 1px solid rgba(200,255,0,0.15);
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    color: var(--accent);
-    letter-spacing: 0.04em;
-    text-align: center;
-    flex-shrink: 0;
-  }
-  .edit-hint.show { display: block; }
-
-  /* PAD GRID */
-  .pad-zone { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
-  .pad-grid { display: grid; gap: 10px; flex: 1; }
-  .grid-4 { grid-template-columns: repeat(4, 1fr); }
-  .grid-3 { grid-template-columns: repeat(3, 1fr); }
-  .grid-2 { grid-template-columns: repeat(2, 1fr); }
-
-  .pad {
-    aspect-ratio: 1;
-    background: var(--pad-idle);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    cursor: pointer; position: relative; overflow: hidden;
-    transition: transform 0.08s, border-color 0.15s;
-    gap: 4px;
-  }
-  .pad::before {
-    content: ''; position: absolute; inset: 0;
-    background: var(--accent); opacity: 0;
-    transition: opacity 0.08s; border-radius: inherit;
-  }
-  .pad.loaded { border-color: #333; }
-  .pad.pressed::before { opacity: 0.15; }
-  .pad.pressed { transform: scale(0.94); }
-  .pad.playing { border-color: var(--pad-playing); animation: pad-play 0.4s ease; }
-  .pad.playing::before { opacity: 0.08; background: var(--pad-playing); }
-  @keyframes pad-play { 0%{transform:scale(0.94)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
-
-  /* Edit mode: pad gets pencil ring */
-  body.edit-mode .pad.loaded {
-    border-color: rgba(200,255,0,0.3);
-    cursor: pointer;
-  }
-  body.edit-mode .pad.loaded:hover,
-  body.edit-mode .pad.loaded:active {
-    border-color: var(--accent);
-  }
-  .pad-edit-icon {
-    display: none;
-    position: absolute;
-    top: 7px; right: 7px;
-    font-size: 11px;
-    opacity: 0.5;
-    z-index: 2;
-  }
-  body.edit-mode .pad.loaded .pad-edit-icon { display: block; }
-
-  .pad-num { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--text-muted); position: absolute; top: 7px; left: 8px; letter-spacing: 0.04em; z-index: 1; }
-  .pad-time { font-size: 13px; font-family: 'Space Mono', monospace; font-weight: 700; color: var(--text-dim); z-index: 1; transition: color 0.15s; }
-  .pad.loaded .pad-time { color: var(--accent); }
-  .pad.playing .pad-time { color: var(--pad-playing); }
-  .pad-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: transparent; z-index: 2; }
-  .pad-bar-fill { height: 100%; background: var(--accent); width: 0%; border-radius: 0; }
-  .pad.playing .pad-bar-fill { background: var(--pad-playing); }
-  .pad-icon { font-size: 18px; color: var(--surface3); z-index: 1; }
-  .pad.loaded .pad-icon { display: none; }
-
-  /* TRANSPORT */
-  .transport { display: flex; align-items: center; gap: 10px; padding: 0 4px; flex-shrink: 0; }
-  .stop-btn {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text-dim); font-size: 18px;
-    width: 42px; height: 42px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .stop-btn:active { background: var(--surface3); transform: scale(0.94); }
-  .stop-btn.active { border-color: var(--red); color: var(--red); }
-  .playing-info { flex: 1; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); }
-  .playing-info span { color: var(--accent); }
-  .tap-hint { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--text-muted); letter-spacing: 0.04em; }
-
-  /* ── EDITOR BOTTOM SHEET ─────────────────────────────────────────────────── */
-  .sheet-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-    backdrop-filter: blur(4px);
-  }
-  .sheet-backdrop.show { opacity: 1; pointer-events: all; }
-
-  .sheet {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: #181818;
-    border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    z-index: 201;
-    transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .sheet.show { transform: translateY(0); }
-
-  .sheet-handle {
-    width: 36px; height: 4px; border-radius: 2px;
-    background: var(--surface3);
-    margin: 12px auto 0;
-  }
-
-  .sheet-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sheet-title {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sheet-pad-badge {
-    background: var(--accent); color: #000;
-    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
-    padding: 3px 8px; border-radius: 5px; letter-spacing: 0.04em;
-  }
-  .sheet-pad-name { font-size: 15px; font-weight: 700; }
-  .sheet-close {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text-dim); font-size: 18px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .sheet-close:active { transform: scale(0.9); }
-
-  /* TIMELINE SCRUBBER */
-  .timeline-section { padding: 20px 20px 8px; }
-  .timeline-label {
-    font-size: 10px; font-family: 'Space Mono', monospace;
-    color: var(--text-muted); letter-spacing: 0.08em;
-    text-transform: uppercase; margin-bottom: 12px;
-    display: flex; justify-content: space-between;
-  }
-  .timeline-wrap {
-    position: relative;
-    height: 56px;
-    background: var(--surface2);
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    touch-action: none;
-  }
-
-  /* Fake waveform bars */
-  .waveform-canvas {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-  }
-
-  /* Scrubber thumb */
-  .scrubber-thumb {
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 3px;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent-glow);
-    transform: translateX(-50%);
-    pointer-events: none;
-    transition: left 0.0s;
-  }
-  .scrubber-thumb::before {
-    content: '';
-    position: absolute;
-    top: -1px; left: 50%;
-    transform: translateX(-50%);
-    width: 14px; height: 14px;
-    background: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--accent-glow);
-  }
-  .scrubber-thumb::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; left: 50%;
-    transform: translateX(-50%);
-    width: 14px; height: 14px;
-    background: var(--accent);
-    border-radius: 50%;
-  }
-
-  /* Region highlight */
-  .scrubber-region {
-    position: absolute;
-    top: 0; bottom: 0;
-    background: rgba(200,255,0,0.12);
-    pointer-events: none;
-    border-right: 1px dashed rgba(200,255,0,0.4);
-  }
-
-  /* Other pad markers */
-  .pad-marker {
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 1px;
-    background: rgba(255,255,255,0.12);
-    pointer-events: none;
-  }
-
-  .timeline-time {
-    font-family: 'Space Mono', monospace; font-size: 11px;
-    color: var(--accent); text-align: center;
-    margin-top: 10px; letter-spacing: 0.04em;
-  }
-
-  /* Fine tune row */
-  .fine-tune {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 20px 16px;
-  }
-  .fine-btn {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text-dim);
-    font-family: 'Space Mono', monospace; font-size: 11px;
-    padding: 8px 12px; cursor: pointer;
-    transition: all 0.15s; white-space: nowrap;
-  }
-  .fine-btn:active { background: var(--surface3); transform: scale(0.95); }
-  .fine-btn.accent { border-color: rgba(200,255,0,0.3); color: var(--accent); }
-  .fine-spacer { flex: 1; }
-
-  /* Sheet actions */
-  .sheet-actions {
-    display: flex; gap: 10px;
-    padding: 0 20px 20px;
-  }
-  .preview-btn {
-    flex: 1; padding: 14px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text);
-    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px;
-    cursor: pointer; transition: all 0.15s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .preview-btn:active { transform: scale(0.97); }
-  .preview-btn.previewing { border-color: var(--pad-playing); color: var(--pad-playing); }
-
-  .confirm-btn {
-    flex: 1; padding: 14px;
-    background: var(--accent); border: none;
-    border-radius: var(--radius); color: #000;
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
-    cursor: pointer; transition: all 0.15s;
-  }
-  .confirm-btn:active { transform: scale(0.97); opacity: 0.85; }
-
-  /* HIDDEN PLAYER */
-  #yt-container { position: fixed; bottom: -300px; left: 0; width: 1px; height: 1px; overflow: hidden; pointer-events: none; opacity: 0; }
-
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: 24px; left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #ff4444; color: #fff;
-    font-family: 'Space Mono', monospace; font-size: 12px;
-    padding: 10px 18px; border-radius: 8px;
-    transition: transform 0.3s; z-index: 999;
-    white-space: nowrap; max-width: 90vw; text-align: center;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { background: var(--accent); color: #000; }
-
-  /* LOADING */
-  .loading-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(10,10,10,0.8); z-index: 100;
-    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
-  }
-  .loading-overlay.show { display: flex; }
-  .loader { width: 40px; height: 40px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-  .loader-text { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); letter-spacing: 0.06em; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AUX</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">MPC<span>.web</span></div>
+  <div class="logo">AUX<span>.fm</span></div>
+  <div class="view-toggle">
+    <button class="toggle-opt active" id="sampleModeBtn">SAMPLE</button>
+    <button class="toggle-opt" id="djModeBtn">DJ</button>
+  </div>
   <div class="header-right">
-    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">✏️ EDIT</button>
+    <button class="edit-mode-btn" id="editModeBtn">✏️ EDIT</button>
     <div class="status-dot" id="statusDot"></div>
   </div>
 </div>
@@ -437,26 +25,32 @@
     <input class="url-input" id="urlInput" type="text"
       placeholder="https://www.youtube.com/watch?v=..."
       autocomplete="off" autocorrect="off" spellcheck="false">
-    <button class="load-btn" id="loadBtn" onclick="loadSong()">LOAD</button>
+    <button class="load-btn" id="loadBtn">LOAD</button>
   </div>
-  <div class="params-row">
+  <div class="params-row sampler-only">
     <div class="param-group">
       <div class="param-label">PADS</div>
       <div class="param-value" id="padCountVal">8</div>
       <div class="param-controls">
-        <button class="param-btn" onclick="changePads(-4)">−4</button>
-        <button class="param-btn" onclick="changePads(-1)">−</button>
-        <button class="param-btn" onclick="changePads(1)">+</button>
-        <button class="param-btn" onclick="changePads(4)">+4</button>
+        <button class="param-btn" id="padMinus4">−4</button>
+        <button class="param-btn" id="padMinus1">−</button>
+        <button class="param-btn" id="padPlus1">+</button>
+        <button class="param-btn" id="padPlus4">+4</button>
       </div>
     </div>
   </div>
-  <div class="duration-row">
+  <div class="duration-row sampler-only">
     <span class="duration-label">PAD DUR</span>
-    <input type="range" id="durSlider" min="0.5" max="8" step="0.5" value="2" oninput="updateDur()">
+    <input type="range" id="durSlider" min="0.5" max="8" step="0.5" value="2">
     <span class="duration-val" id="durVal">2s</span>
   </div>
+  <div class="session-row">
+    <button class="session-btn" id="importBtn">↑ IMPORT</button>
+    <button class="session-btn" id="exportBtn">↓ EXPORT</button>
+  </div>
 </div>
+
+<input type="file" id="importFile" accept=".json" style="display:none">
 
 <div class="info-bar">
   <div class="song-title" id="songTitle">Paste a YouTube URL and hit LOAD</div>
@@ -466,20 +60,49 @@
 
 <div class="edit-hint" id="editHint">✏️ TAP ANY PAD TO MOVE ITS SAMPLE POINT</div>
 
-<div class="pad-zone">
+<!-- SAMPLER VIEW -->
+<div class="pad-zone" id="padZone">
   <div class="pad-grid grid-4" id="padGrid"></div>
   <div class="transport">
-    <button class="stop-btn" id="stopBtn" onclick="stopAll()">■</button>
+    <button class="stop-btn" id="stopBtn">■</button>
     <div class="playing-info"><span id="playingPad">—</span> ready</div>
     <div class="tap-hint" id="tapHint">TAP TO PLAY</div>
   </div>
 </div>
 
-<!-- HIDDEN YT PLAYER -->
+<!-- DJ VIEW -->
+<div class="dj-zone" id="djZone" style="display:none">
+
+  <!-- Shown until an audio file is loaded -->
+  <div class="dj-upload" id="djUpload">
+    <div class="dj-drop-zone" id="djDropZone">
+      <div class="dj-upload-icon">♫</div>
+      <div class="dj-upload-title">DROP AN AUDIO FILE</div>
+      <div class="dj-upload-sub">MP3 · WAV · OGG · FLAC · M4A</div>
+      <button class="dj-browse-btn" id="djBrowseBtn">BROWSE FILES</button>
+      <input type="file" id="djFileInput" accept="audio/*,.m4a" style="display:none">
+    </div>
+  </div>
+
+  <!-- Shown after file is decoded -->
+  <div class="dj-wheel-area" id="djWheelArea" style="display:none">
+    <div class="dj-wheel-wrap">
+      <canvas class="dj-canvas" id="djCanvas"></canvas>
+    </div>
+    <div class="dj-transport">
+      <span class="dj-time" id="djCurrentTime">0:00</span>
+      <button class="dj-play-btn" id="djPlayBtn">▶</button>
+      <span class="dj-time dj-time-total" id="djTotalTime">0:00</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Hidden YouTube player -->
 <div id="yt-container"><div id="player"></div></div>
 
-<!-- EDITOR BOTTOM SHEET -->
-<div class="sheet-backdrop" id="sheetBackdrop" onclick="closeEditor()"></div>
+<!-- Editor bottom sheet -->
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
 <div class="sheet" id="editorSheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
@@ -487,7 +110,7 @@
       <div class="sheet-pad-badge" id="sheetPadBadge">P01</div>
       <div class="sheet-pad-name">Sample Point</div>
     </div>
-    <div class="sheet-close" onclick="closeEditor()">×</div>
+    <div class="sheet-close" id="sheetClose">×</div>
   </div>
 
   <div class="timeline-section">
@@ -498,25 +121,38 @@
     <div class="timeline-wrap" id="timelineWrap">
       <canvas class="waveform-canvas" id="waveCanvas"></canvas>
       <div class="scrubber-region" id="scrubberRegion"></div>
-      <!-- Other pad markers injected here -->
       <div class="scrubber-thumb" id="scrubberThumb"></div>
     </div>
     <div class="timeline-time" id="scrubberTime">0:00</div>
   </div>
 
   <div class="fine-tune">
-    <button class="fine-btn accent" onclick="nudge(-5)">−5s</button>
-    <button class="fine-btn accent" onclick="nudge(-1)">−1s</button>
-    <button class="fine-btn accent" onclick="nudge(-0.1)">−0.1s</button>
+    <span class="fine-section-label">START</span>
+    <button class="fine-btn accent" id="nudgeMinus5">−5s</button>
+    <button class="fine-btn accent" id="nudgeMinus1">−1s</button>
+    <button class="fine-btn accent" id="nudgeMinus01">−0.1s</button>
     <div class="fine-spacer"></div>
-    <button class="fine-btn accent" onclick="nudge(0.1)">+0.1s</button>
-    <button class="fine-btn accent" onclick="nudge(1)">+1s</button>
-    <button class="fine-btn accent" onclick="nudge(5)">+5s</button>
+    <button class="fine-btn accent" id="nudgePlus01">+0.1s</button>
+    <button class="fine-btn accent" id="nudgePlus1">+1s</button>
+    <button class="fine-btn accent" id="nudgePlus5">+5s</button>
+  </div>
+
+  <div class="fine-tune dur-tune">
+    <span class="fine-section-label">DUR</span>
+    <button class="fine-btn accent" id="durMinus1">−1s</button>
+    <button class="fine-btn accent" id="durMinus05">−0.5s</button>
+    <button class="fine-btn accent" id="durMinus01">−0.1s</button>
+    <div class="fine-spacer"></div>
+    <span class="editor-dur-val" id="editorDurVal">2.0s</span>
+    <div class="fine-spacer"></div>
+    <button class="fine-btn accent" id="durPlus01">+0.1s</button>
+    <button class="fine-btn accent" id="durPlus05">+0.5s</button>
+    <button class="fine-btn accent" id="durPlus1">+1s</button>
   </div>
 
   <div class="sheet-actions">
-    <button class="preview-btn" id="previewBtn" onclick="previewSample()">▶ PREVIEW</button>
-    <button class="confirm-btn" onclick="confirmSamplePoint()">✓ SET POINT</button>
+    <button class="preview-btn" id="previewBtn">▶ PREVIEW</button>
+    <button class="confirm-btn" id="confirmBtn">✓ SET POINT</button>
   </div>
 </div>
 
@@ -526,485 +162,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script>
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let player = null;
-let ytReady = false;
-let songLoaded = false;
-let songDuration = 0;
-let padCount = 8;
-let padDuration = 2;
-let pads = [];         // array of start times (seconds)
-let currentPad = null;
-let padTimer = null;
-let padProgressInterval = null;
-let padStartTime = 0;
-let editMode = false;
-
-// Editor state
-let editorPadIndex = -1;
-let editorCurrentTime = 0;   // seconds, what the scrubber shows
-let editorConfirmedTime = 0; // seconds, last confirmed value
-let previewTimer = null;
-let isPreviewing = false;
-let isDragging = false;
-
-// ─── YOUTUBE API ─────────────────────────────────────────────────────────────
-window.onYouTubeIframeAPIReady = function() {
-  ytReady = true;
-  document.getElementById('statusDot').className = 'status-dot ready';
-};
-
-(function loadYTScript() {
-  if (location.protocol === 'file:') {
-    setTimeout(() => showToast('⚠️ Open from a server, not file://'), 800);
-  }
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  tag.onerror = () => showToast('Could not load YouTube API. Check your connection.');
-  document.head.appendChild(tag);
-
-  let attempts = 0;
-  const check = setInterval(() => {
-    attempts++;
-    if (ytReady || attempts > 20) { clearInterval(check); return; }
-    if (window.YT && window.YT.Player) {
-      ytReady = true;
-      document.getElementById('statusDot').className = 'status-dot ready';
-      clearInterval(check);
-    }
-  }, 500);
-})();
-
-// ─── UTILS ───────────────────────────────────────────────────────────────────
-function extractVideoId(url) {
-  const patterns = [/[?&]v=([^&#]+)/, /youtu\.be\/([^?&#]+)/, /embed\/([^?&#]+)/, /shorts\/([^?&#]+)/];
-  for (const p of patterns) { const m = url.match(p); if (m) return m[1]; }
-  return null;
-}
-function formatTime(sec) {
-  sec = Math.max(0, sec);
-  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
-function formatTimeMs(sec) {
-  sec = Math.max(0, sec);
-  const m = Math.floor(sec / 60), s = (sec % 60).toFixed(1);
-  return `${m}:${parseFloat(s) < 10 ? '0' : ''}${s}`;
-}
-function showToast(msg, type = 'error') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type === 'success' ? ' success' : '');
-  setTimeout(() => { t.className = 'toast'; }, 3000);
-}
-function setLoading(show, text = 'LOADING...') {
-  document.getElementById('loaderText').textContent = text;
-  document.getElementById('loadingOverlay').className = show ? 'loading-overlay show' : 'loading-overlay';
-}
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-// ─── EDIT MODE ───────────────────────────────────────────────────────────────
-function toggleEditMode() {
-  editMode = !editMode;
-  document.body.classList.toggle('edit-mode', editMode);
-  const btn = document.getElementById('editModeBtn');
-  btn.classList.toggle('active', editMode);
-  btn.textContent = editMode ? '✅ DONE' : '✏️ EDIT';
-  document.getElementById('editHint').classList.toggle('show', editMode);
-  document.getElementById('tapHint').textContent = editMode ? 'TAP PAD TO EDIT' : 'TAP TO PLAY';
-}
-
-// ─── PARAMS ──────────────────────────────────────────────────────────────────
-function changePads(delta) {
-  padCount = Math.max(1, Math.min(16, padCount + delta));
-  document.getElementById('padCountVal').textContent = padCount;
-  if (songLoaded) distributePads(); else renderEmptyPads();
-}
-function updateDur() {
-  padDuration = parseFloat(document.getElementById('durSlider').value);
-  document.getElementById('durVal').textContent = padDuration + 's';
-}
-
-// ─── GRID ────────────────────────────────────────────────────────────────────
-function getGridCols(count) {
-  if (count <= 2) return 'grid-2';
-  if (count <= 6) return 'grid-3';
-  return 'grid-4';
-}
-function renderEmptyPads() {
-  const grid = document.getElementById('padGrid');
-  grid.className = 'pad-grid ' + getGridCols(padCount);
-  grid.innerHTML = '';
-  for (let i = 0; i < padCount; i++) {
-    const pad = document.createElement('div');
-    pad.className = 'pad';
-    pad.innerHTML = `<div class="pad-num">P${String(i+1).padStart(2,'0')}</div><div class="pad-icon">+</div><div class="pad-time">—:——</div><div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>`;
-    grid.appendChild(pad);
-  }
-}
-
-// ─── LOAD SONG ───────────────────────────────────────────────────────────────
-function loadSong() {
-  const url = document.getElementById('urlInput').value.trim();
-  if (!url) { showToast('Paste a YouTube URL'); return; }
-  const videoId = extractVideoId(url);
-  if (!videoId) { showToast('Invalid YouTube URL'); return; }
-
-  if (!ytReady) {
-    setLoading(true, 'WAITING FOR YOUTUBE API...');
-    let waited = 0;
-    const wait = setInterval(() => {
-      waited += 500;
-      if (ytReady) { clearInterval(wait); setLoading(false); loadSong(); }
-      else if (waited >= 8000) { clearInterval(wait); setLoading(false); showToast('YouTube API not responding. Check your connection.'); }
-    }, 500);
-    return;
-  }
-
-  setLoading(true, 'STARTING PLAYER...');
-  document.getElementById('loadBtn').disabled = true;
-  stopAll();
-  if (player) { player.destroy(); player = null; }
-
-  setTimeout(() => {
-    try {
-      player = new YT.Player('player', {
-        height: '200', width: '320', videoId,
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, rel: 0, origin: window.location.origin || 'https://localhost' },
-        events: { onReady: onPlayerReady, onError: onPlayerError }
-      });
-    } catch(e) {
-      setLoading(false);
-      document.getElementById('loadBtn').disabled = false;
-      showToast('Player error: ' + e.message);
-    }
-  }, 200);
-}
-
-function onPlayerReady(event) {
-  setLoading(true, 'GETTING DURATION...');
-  event.target.mute();
-  event.target.playVideo();
-  setTimeout(() => {
-    const dur = event.target.getDuration();
-    if (dur > 0) finishLoad(dur, event.target);
-    else setTimeout(() => finishLoad(event.target.getDuration() || 180, event.target), 2000);
-  }, 1500);
-}
-
-function finishLoad(dur, playerRef) {
-  playerRef.pauseVideo();
-  playerRef.seekTo(0);
-  playerRef.unMute();
-  songDuration = dur;
-  songLoaded = true;
-
-  const title = player.getVideoData ? player.getVideoData().title : 'Song loaded';
-  const titleEl = document.getElementById('songTitle');
-  titleEl.textContent = title || 'Song loaded';
-  titleEl.className = 'song-title loaded';
-  const durBadge = document.getElementById('totalDur');
-  durBadge.style.display = '';
-  durBadge.textContent = formatTime(dur);
-
-  document.getElementById('statusDot').className = 'status-dot ready';
-  setLoading(false);
-  document.getElementById('loadBtn').disabled = false;
-  distributePads();
-  showToast('Song ready! Tap the pads', 'success');
-}
-
-function onPlayerError(event) {
-  setLoading(false);
-  document.getElementById('loadBtn').disabled = false;
-  const codes = {2:'Bad URL',5:'HTML5 error',100:'Video not found',101:'Playback not allowed',150:'Playback not allowed'};
-  showToast('Error: ' + (codes[event.data] || 'code ' + event.data));
-  document.getElementById('statusDot').className = 'status-dot';
-}
-
-// ─── DISTRIBUTE PADS ─────────────────────────────────────────────────────────
-function distributePads() {
-  if (!songLoaded) return;
-  const margin = songDuration * 0.05;
-  const usable = songDuration - margin * 2;
-  const step = usable / padCount;
-  pads = [];
-  for (let i = 0; i < padCount; i++) pads.push(margin + step * i + step * 0.1);
-  renderPads();
-}
-
-function renderPads() {
-  const grid = document.getElementById('padGrid');
-  grid.className = 'pad-grid ' + getGridCols(padCount);
-  grid.innerHTML = '';
-  pads.forEach((startSec, i) => {
-    const pad = document.createElement('div');
-    pad.className = 'pad loaded';
-    pad.dataset.index = i;
-    pad.innerHTML = `
-      <div class="pad-num">P${String(i+1).padStart(2,'0')}</div>
-      <div class="pad-edit-icon">✏️</div>
-      <div class="pad-time" id="padtime${i}">${formatTime(startSec)}</div>
-      <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
-    `;
-    let pressTimer = null;
-    let didLongPress = false;
-
-    pad.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      didLongPress = false;
-      pad.classList.add('pressed');
-      if (!editMode) {
-        // Long press in normal mode also opens editor
-        pressTimer = setTimeout(() => {
-          didLongPress = true;
-          pad.classList.remove('pressed');
-          if (navigator.vibrate) navigator.vibrate([10, 20, 30]);
-          openEditor(i);
-        }, 500);
-      }
-    });
-    pad.addEventListener('pointerup', (e) => {
-      clearTimeout(pressTimer);
-      pad.classList.remove('pressed');
-      if (!didLongPress) {
-        if (editMode) openEditor(i);
-        else triggerPad(i, pad);
-      }
-      didLongPress = false;
-    });
-    pad.addEventListener('pointerleave', () => {
-      clearTimeout(pressTimer);
-      pad.classList.remove('pressed');
-    });
-    pad.addEventListener('contextmenu', (e) => e.preventDefault());
-    grid.appendChild(pad);
-  });
-}
-
-function updatePadTimeLabel(index) {
-  const el = document.getElementById('padtime' + index);
-  if (el) el.textContent = formatTime(pads[index]);
-}
-
-// ─── TRIGGER PAD ─────────────────────────────────────────────────────────────
-function triggerPad(index, padEl) {
-  if (!songLoaded || !player) return;
-  clearPadState();
-  currentPad = { index, el: padEl };
-  padEl.classList.add('playing');
-  padStartTime = Date.now();
-  const seekTo = pads[index];
-  player.seekTo(seekTo, true);
-  player.playVideo();
-  document.getElementById('statusDot').className = 'status-dot playing';
-  document.getElementById('playingPad').textContent = `PAD ${index + 1} · ${formatTime(seekTo)}`;
-  document.getElementById('stopBtn').className = 'stop-btn active';
-  const bar = document.getElementById('bar' + index);
-  const totalMs = padDuration * 1000;
-  padProgressInterval = setInterval(() => {
-    const pct = Math.min(100, ((Date.now() - padStartTime) / totalMs) * 100);
-    if (bar) bar.style.width = pct + '%';
-  }, 50);
-  padTimer = setTimeout(() => stopAll(), padDuration * 1000);
-  if (navigator.vibrate) navigator.vibrate(30);
-}
-
-function clearPadState() {
-  if (padTimer) { clearTimeout(padTimer); padTimer = null; }
-  if (padProgressInterval) { clearInterval(padProgressInterval); padProgressInterval = null; }
-  document.querySelectorAll('.pad.playing').forEach(p => p.classList.remove('playing'));
-  document.querySelectorAll('.pad-bar-fill').forEach(b => b.style.width = '0%');
-  currentPad = null;
-}
-
-function stopAll() {
-  clearPadState();
-  if (player && player.pauseVideo) player.pauseVideo();
-  document.getElementById('statusDot').className = songLoaded ? 'status-dot ready' : 'status-dot';
-  document.getElementById('playingPad').textContent = '—';
-  document.getElementById('stopBtn').className = 'stop-btn';
-}
-
-// ─── EDITOR ──────────────────────────────────────────────────────────────────
-function openEditor(padIndex) {
-  stopAll();
-  editorPadIndex = padIndex;
-  editorCurrentTime = pads[padIndex];
-  editorConfirmedTime = pads[padIndex];
-
-  document.getElementById('sheetPadBadge').textContent = 'P' + String(padIndex + 1).padStart(2, '0');
-  document.getElementById('sheetTotalTime').textContent = formatTime(songDuration);
-  document.getElementById('sheetBackdrop').className = 'sheet-backdrop show';
-  document.getElementById('editorSheet').className = 'sheet show';
-
-  drawWaveform();
-  renderOtherPadMarkers();
-  updateScrubber(editorCurrentTime);
-  stopPreview();
-}
-
-function closeEditor() {
-  document.getElementById('sheetBackdrop').className = 'sheet-backdrop';
-  document.getElementById('editorSheet').className = 'sheet';
-  stopPreview();
-  editorPadIndex = -1;
-}
-
-function confirmSamplePoint() {
-  if (editorPadIndex < 0) return;
-  pads[editorPadIndex] = editorCurrentTime;
-  updatePadTimeLabel(editorPadIndex);
-  showToast(`PAD ${editorPadIndex + 1} → ${formatTimeMs(editorCurrentTime)}`, 'success');
-  closeEditor();
-}
-
-// ─── WAVEFORM (fake, decorative) ─────────────────────────────────────────────
-function drawWaveform() {
-  const canvas = document.getElementById('waveCanvas');
-  const wrap = document.getElementById('timelineWrap');
-  const W = wrap.clientWidth, H = wrap.clientHeight;
-  canvas.width = W * window.devicePixelRatio;
-  canvas.height = H * window.devicePixelRatio;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-  // Seeded pseudo-random based on video id for stable shape
-  const seed = songDuration * 137.5;
-  function rng(n) { return (Math.sin(n * seed * 0.01 + n) * 0.5 + 0.5); }
-
-  const bars = Math.floor(W / 3);
-  const barW = W / bars;
-
-  ctx.fillStyle = '#222';
-  ctx.fillRect(0, 0, W, H);
-
-  for (let i = 0; i < bars; i++) {
-    const h = (0.15 + rng(i) * 0.7) * H;
-    const y = (H - h) / 2;
-    const alpha = 0.25 + rng(i + 1000) * 0.4;
-    ctx.fillStyle = `rgba(200,255,0,${alpha})`;
-    ctx.fillRect(i * barW + 1, y, barW - 1, h);
-  }
-}
-
-function renderOtherPadMarkers() {
-  // Remove old markers
-  document.querySelectorAll('.pad-marker').forEach(m => m.remove());
-  const wrap = document.getElementById('timelineWrap');
-  pads.forEach((t, i) => {
-    if (i === editorPadIndex) return;
-    const pct = t / songDuration;
-    const marker = document.createElement('div');
-    marker.className = 'pad-marker';
-    marker.style.left = (pct * 100) + '%';
-    marker.title = `P${i+1}: ${formatTime(t)}`;
-    wrap.appendChild(marker);
-  });
-}
-
-// ─── SCRUBBER ────────────────────────────────────────────────────────────────
-function updateScrubber(sec) {
-  editorCurrentTime = clamp(sec, 0, songDuration);
-  const pct = editorCurrentTime / songDuration;
-  document.getElementById('scrubberThumb').style.left = (pct * 100) + '%';
-  // Region: from thumb to thumb + padDuration
-  const regionEnd = clamp((editorCurrentTime + padDuration) / songDuration, 0, 1);
-  const region = document.getElementById('scrubberRegion');
-  region.style.left = (pct * 100) + '%';
-  region.style.width = ((regionEnd - pct) * 100) + '%';
-  document.getElementById('scrubberTime').textContent = formatTimeMs(editorCurrentTime);
-}
-
-function timelinePointerToSec(e) {
-  const wrap = document.getElementById('timelineWrap');
-  const rect = wrap.getBoundingClientRect();
-  const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-  return x * songDuration;
-}
-
-const timelineWrap = document.getElementById('timelineWrap');
-
-timelineWrap.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  isDragging = true;
-  timelineWrap.setPointerCapture(e.pointerId);
-  const sec = timelinePointerToSec(e);
-  updateScrubber(sec);
-  stopPreview();
-  if (navigator.vibrate) navigator.vibrate(10);
-});
-
-timelineWrap.addEventListener('pointermove', (e) => {
-  if (!isDragging) return;
-  const sec = timelinePointerToSec(e);
-  updateScrubber(sec);
-});
-
-timelineWrap.addEventListener('pointerup', (e) => {
-  isDragging = false;
-});
-
-timelineWrap.addEventListener('pointercancel', () => { isDragging = false; });
-
-// ─── NUDGE ───────────────────────────────────────────────────────────────────
-function nudge(delta) {
-  updateScrubber(editorCurrentTime + delta);
-  stopPreview();
-}
-
-// ─── PREVIEW ─────────────────────────────────────────────────────────────────
-function previewSample() {
-  if (!player || !songLoaded) return;
-  if (isPreviewing) { stopPreview(); return; }
-  isPreviewing = true;
-  const btn = document.getElementById('previewBtn');
-  btn.textContent = '■ STOP';
-  btn.classList.add('previewing');
-  player.seekTo(editorCurrentTime, true);
-  player.playVideo();
-  previewTimer = setTimeout(() => stopPreview(), padDuration * 1000);
-}
-
-function stopPreview() {
-  if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
-  isPreviewing = false;
-  const btn = document.getElementById('previewBtn');
-  btn.textContent = '▶ PREVIEW';
-  btn.classList.remove('previewing');
-  if (player && player.pauseVideo) player.pauseVideo();
-}
-
-// ─── KEYBOARD ────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if (document.getElementById('editorSheet').classList.contains('show')) {
-    if (e.key === 'Escape') closeEditor();
-    if (e.key === 'Enter') confirmSamplePoint();
-    if (e.key === 'ArrowLeft') nudge(e.shiftKey ? -5 : e.altKey ? -0.1 : -1);
-    if (e.key === 'ArrowRight') nudge(e.shiftKey ? 5 : e.altKey ? 0.1 : 1);
-    if (e.key === ' ') { e.preventDefault(); previewSample(); }
-    return;
-  }
-  const keys = ['q','w','e','r','a','s','d','f','z','x','c','v','1','2','3','4'];
-  const idx = keys.indexOf(e.key.toLowerCase());
-  if (idx >= 0 && idx < pads.length) {
-    const padEls = document.querySelectorAll('.pad.loaded');
-    if (padEls[idx]) {
-      if (editMode) { openEditor(idx); return; }
-      padEls[idx].classList.add('pressed');
-      triggerPad(idx, padEls[idx]);
-      setTimeout(() => padEls[idx].classList.remove('pressed'), 150);
-    }
-  }
-  if (e.key === ' ' || e.key === 'Escape') { e.preventDefault(); stopAll(); }
-});
-
-// ─── INIT ────────────────────────────────────────────────────────────────────
-renderEmptyPads();
-updateDur();
-</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

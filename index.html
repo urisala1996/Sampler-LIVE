@@ -24,11 +24,22 @@
 </div>
 
 <div class="config">
-  <div class="url-row">
+  <div class="source-toggle sampler-only">
+    <button class="src-btn active" id="srcYoutubeBtn">YOUTUBE</button>
+    <button class="src-btn" id="srcFileBtn">FILE</button>
+  </div>
+  <div class="url-row" id="urlRow">
     <input class="url-input" id="urlInput" type="text"
       placeholder="https://www.youtube.com/watch?v=..."
       autocomplete="off" autocorrect="off" spellcheck="false">
     <button class="load-btn" id="loadBtn">LOAD</button>
+  </div>
+  <div class="file-row" id="fileRow" style="display:none">
+    <div class="file-drop-target">
+      <span class="file-name-display" id="samplerFileName">Drop audio or browse</span>
+      <button class="load-btn" id="samplerBrowseBtn">BROWSE</button>
+    </div>
+    <input type="file" id="samplerFileInput" accept="audio/*,.m4a" style="display:none">
   </div>
   <div class="params-row sampler-only">
     <div class="param-group">

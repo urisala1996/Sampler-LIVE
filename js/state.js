@@ -56,4 +56,11 @@ export const state = {
   djPlaybackStart: 0,       // AudioContext.currentTime when source started
   djCurrentRate: 1,         // rate of current source (negative = reverse)
   djFileName: '',           // display name from uploaded file
+
+  // Sampler audio source
+  samplerSource: 'youtube',      // 'youtube' | 'file'
+  samplerAudioBuffer: null,      // decoded AudioBuffer for file mode
+  samplerAudioContext: null,     // AudioContext (lazy init)
+  samplerAudioSource: null,      // current AudioBufferSourceNode
+  samplerFileName: '',           // display name (no extension)
 };

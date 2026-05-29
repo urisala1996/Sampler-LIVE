@@ -474,3 +474,15 @@ body.dj-active .edit-hint     { display: none !important; }
 .loader { width: 36px; height: 36px; border: 1.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .loader-text { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Sampler source toggle ───────────────────────────────────────────────── */
+.source-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; gap: 2px; }
+.src-btn { font-size: 9px; font-family: 'Space Mono', monospace; padding: 5px 14px; border-radius: 4px; background: transparent; color: var(--text-muted); letter-spacing: 0.10em; transition: all var(--t-mid); }
+.src-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+
+/* ── Sampler file row ────────────────────────────────────────────────────── */
+.file-row { display: flex; gap: 8px; align-items: stretch; }
+.file-drop-target { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 11px 14px; transition: border-color var(--t-mid), background var(--t-mid); }
+.file-drop-target.drag-over { border-color: var(--accent); background: var(--surface2); }
+.file-name-display { flex: 1; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-name-display.loaded { color: var(--text); }

@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { formatTime } from './utils.js';
 import { icon } from './icons.js';
+import { triggerSamplerPad, stopSamplerAudio } from './sampler-audio.js';
 
 // Injected by main.js to avoid circular dep with editor.js
 let _openEditor = () => {};
@@ -56,6 +57,10 @@ export function renderPads() {
       e.preventDefault();
       didLongPress = false;
       pad.classList.add('pressed');
+      // Pre-seek: buffer the YouTube position on touch — reduces seek latency by ~100ms
+      if (!state.editMode && state.samplerSource === 'youtube' && state.player && state.songLoaded) {
+        state.player.seekTo(state.pads[i], true);
+      }
       if (!state.editMode) {
         pressTimer = setTimeout(() => {
           didLongPress = true;
@@ -110,7 +115,9 @@ export function distributePads() {
 // ── Playback ──────────────────────────────────────────────────────────────────
 
 export function triggerPad(index, padEl) {
-  if (!state.songLoaded || !state.player) return;
+  if (!state.songLoaded) return;
+  if (state.samplerSource === 'youtube' && !state.player) return;
+  if (state.samplerSource === 'file'    && !state.samplerAudioBuffer) return;
   clearPadState();
 
   state.currentPad = { index, el: padEl };
@@ -118,8 +125,14 @@ export function triggerPad(index, padEl) {
   state.padStartTime = Date.now();
 
   const seekTo = state.pads[index];
-  state.player.seekTo(seekTo, true);
-  state.player.playVideo();
+  const dur    = state.padDurations[index] ?? state.padDuration;
+
+  if (state.samplerSource === 'file') {
+    triggerSamplerPad(seekTo, dur);
+  } else {
+    state.player.seekTo(seekTo, true);
+    state.player.playVideo();
+  }
 
   document.getElementById('statusDot').className = 'status-dot playing';
   document.getElementById('playingPad').textContent = `PAD ${index + 1} · ${formatTime(seekTo)}`;
@@ -128,7 +141,6 @@ export function triggerPad(index, padEl) {
   stopBtn.innerHTML = icon('stop', 14);
 
   const bar = document.getElementById('bar' + index);
-  const dur = state.padDurations[index] ?? state.padDuration;
   const totalMs = dur * 1000;
   state.padProgressInterval = setInterval(() => {
     const pct = Math.min(100, ((Date.now() - state.padStartTime) / totalMs) * 100);
@@ -149,7 +161,11 @@ export function clearPadState() {
 
 export function stopAll() {
   clearPadState();
-  if (state.player && state.player.pauseVideo) state.player.pauseVideo();
+  if (state.samplerSource === 'file') {
+    stopSamplerAudio();
+  } else if (state.player && state.player.pauseVideo) {
+    state.player.pauseVideo();
+  }
   document.getElementById('statusDot').className = state.songLoaded ? 'status-dot ready' : 'status-dot';
   document.getElementById('playingPad').textContent = '—';
   const stopBtn = document.getElementById('stopBtn');

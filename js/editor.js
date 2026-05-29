@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { formatTime, formatTimeMs, showToast, clamp } from './utils.js';
 import { stopAll, updatePadTimeLabel } from './pads.js';
 import { icon } from './icons.js';
+import { previewSamplerSample, stopSamplerPreview } from './sampler-audio.js';
 
 // ── Open / close ──────────────────────────────────────────────────────────────
 
@@ -118,7 +119,9 @@ export function nudge(delta) {
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 export function previewSample() {
-  if (!state.player || !state.songLoaded) return;
+  if (!state.songLoaded) return;
+  if (state.samplerSource === 'youtube' && !state.player) return;
+  if (state.samplerSource === 'file'    && !state.samplerAudioBuffer) return;
   if (state.isPreviewing) { stopPreview(); return; }
 
   state.isPreviewing = true;
@@ -126,8 +129,12 @@ export function previewSample() {
   btn.innerHTML = `${icon('stop', 14)} STOP`;
   btn.classList.add('previewing');
 
-  state.player.seekTo(state.editorCurrentTime, true);
-  state.player.playVideo();
+  if (state.samplerSource === 'file') {
+    previewSamplerSample(state.editorCurrentTime, state.editorCurrentDuration);
+  } else {
+    state.player.seekTo(state.editorCurrentTime, true);
+    state.player.playVideo();
+  }
   state.previewTimer = setTimeout(() => stopPreview(), state.editorCurrentDuration * 1000);
 }
 
@@ -139,7 +146,11 @@ export function stopPreview() {
     btn.innerHTML = `${icon('play', 14)} PREVIEW`;
     btn.classList.remove('previewing');
   }
-  if (state.player && state.player.pauseVideo) state.player.pauseVideo();
+  if (state.samplerSource === 'file') {
+    stopSamplerPreview();
+  } else if (state.player && state.player.pauseVideo) {
+    state.player.pauseVideo();
+  }
 }
 
 // ── Per-pad duration ──────────────────────────────────────────────────────────

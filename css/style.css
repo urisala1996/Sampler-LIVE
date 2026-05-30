@@ -108,12 +108,37 @@ body {
 .config {
   padding: 16px 20px 20px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+  max-height: 600px;
+  opacity: 1;
+  transition: max-height 0.3s ease, opacity 0.15s ease;
 }
+body.config-collapsed .config { max-height: 0; opacity: 0; padding: 0; }
+
+.config-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+  font: 700 9px/1 'Space Mono', monospace;
+  letter-spacing: .1em;
+  color: var(--text-dim);
+  transition: color var(--t-fast);
+}
+.config-toggle:hover { color: var(--text-muted); }
+.config-chevron { transition: transform var(--t-mid); }
+body.config-collapsed .config-chevron { transform: rotate(180deg); }
+body.dj-active .config-toggle { display: none; }
+body.dj-active .config { max-height: none; opacity: 1; border-bottom: 1px solid var(--border); overflow: visible; }
 .url-row { display: flex; gap: 8px; }
 .url-input {
   flex: 1; background: var(--bg); border: 1px solid var(--border);

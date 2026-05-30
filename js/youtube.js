@@ -112,6 +112,7 @@ function finishLoad(dur, playerRef) {
   document.getElementById('statusDot').className = 'status-dot ready';
   setLoading(false);
   document.getElementById('loadBtn').disabled = false;
+  document.body.classList.add('config-collapsed');
 
   if (state.pendingImport) {
     restoreFromImport();

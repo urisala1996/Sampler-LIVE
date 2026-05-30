@@ -31,7 +31,7 @@ export function exportSession() {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a    = document.createElement('a');
   a.href     = URL.createObjectURL(blob);
-  a.download = `aux-${slug}.json`;
+  a.download = `oniric-${slug}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
   showToast('Session exported', 'success');

@@ -67,6 +67,7 @@ function setView(view) {
   document.getElementById('sampleModeBtn').classList.toggle('active', view === 'sampler');
   document.getElementById('djModeBtn').classList.toggle('active', view === 'dj');
   if (view === 'dj') {
+    document.body.classList.remove('config-collapsed');
     stopAll();
     activateDj();
   } else {
@@ -216,7 +217,10 @@ function handleCopyRoomLink() {
 function init() {
   // Break circular deps by injecting callbacks
   setOpenEditorCallback(openEditor);
-  setOnLoadedCallback(() => state.pendingImport ? restoreFromImport() : distributePads());
+  setOnLoadedCallback(() => {
+    state.pendingImport ? restoreFromImport() : distributePads();
+    document.body.classList.add('config-collapsed');
+  });
   setSamplerSourceCallback(setSamplerSource);
 
   // Config panel
@@ -254,6 +258,11 @@ function init() {
     e.preventDefault();
     fileRow.querySelector('.file-drop-target').classList.remove('drag-over');
     if (e.dataTransfer.files[0]) loadSamplerFile(e.dataTransfer.files[0]);
+  });
+
+  // Config collapse toggle
+  document.getElementById('configToggleBtn').addEventListener('click', () => {
+    document.body.classList.toggle('config-collapsed');
   });
 
   // Auto sample-point detection

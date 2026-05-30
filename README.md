@@ -1,4 +1,4 @@
-# AUX.fm
+# ONIRIC.pads
 
 A browser-based music sampler and DJ web app. No install, no build step — open in any modern browser and play.
 

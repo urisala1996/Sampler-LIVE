@@ -17,6 +17,9 @@ const FIREBASE_CONFIG = {
 
 const CONFIGURED = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
 
+// How far ahead (ms) pad events are scheduled so all participants fire in sync
+export const LOOKAHEAD_MS = 150;
+
 import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, push, set, get, remove, onChildAdded, onValue,
          onDisconnect, query, orderByChild, startAt }
@@ -31,7 +34,7 @@ let _unsubEvents     = null;
 let _unsubPresence   = null;
 let _presenceNodeRef   = null;
 let _participantCount  = 0;
-let _handlers = { onPadTrigger: () => {}, onPadStop: () => {}, onSessionUpdate: () => {} };
+let _handlers = { onPadTrigger: () => {}, onPadStop: () => {}, onSessionUpdate: () => {}, onBpmUpdate: () => {} };
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -116,9 +119,10 @@ function _subscribeEvents(code) {
     const ev = snap.val();
     if (!ev || ev.clientId === state.roomClientId) return;
     switch (ev.type) {
-      case 'pad_trigger':    _handlers.onPadTrigger(ev.payload.index); break;
+      case 'pad_trigger':    _handlers.onPadTrigger(ev.payload.index, ev.payload.fireAt); break;
       case 'pad_stop':       _handlers.onPadStop(); break;
       case 'session_update': _handlers.onSessionUpdate(ev.payload); break;
+      case 'bpm_update':     _handlers.onBpmUpdate(ev.payload); break;
     }
   });
 }

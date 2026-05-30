@@ -57,19 +57,24 @@ export async function loadSamplerFile(file) {
 
 // ── Playback ──────────────────────────────────────────────────────────────────
 
-function startSource(offset, dur) {
+function startSource(offset, dur, when) {
   stopSource();
   const ctx = getCtx();
   const src = ctx.createBufferSource();
   src.buffer = state.samplerAudioBuffer;
   src.connect(ctx.destination);
-  // 3-arg start(): begin at offset, play for dur seconds (audio auto-stops)
-  src.start(0, offset, dur);
+  src.start(when ?? 0, offset, dur);
   state.samplerAudioSource = src;
 }
 
-export function triggerSamplerPad(offset, dur) {
-  startSource(offset, dur);
+// fireAt: optional wall-clock timestamp (Date.now() ms) for scheduled sync.
+// When omitted the pad fires immediately.
+export function triggerSamplerPad(offset, dur, fireAt) {
+  const ctx  = getCtx();
+  const when = (fireAt != null)
+    ? ctx.currentTime + Math.max(0, (fireAt - Date.now()) / 1000)
+    : 0;
+  startSource(offset, dur, when);
 }
 
 export function stopSamplerAudio() {
@@ -84,4 +89,55 @@ export function previewSamplerSample(offset, dur) {
 
 export function stopSamplerPreview() {
   stopSource();
+}
+
+// ── BPM auto-detection ────────────────────────────────────────────────────────
+// Onset-energy approach: find local energy peaks, measure inter-onset intervals.
+// Returns integer BPM (60–200) or null if the estimate is unreliable.
+export function detectBpm(audioBuffer) {
+  if (!audioBuffer) return null;
+  const sr      = audioBuffer.sampleRate;
+  const data    = audioBuffer.getChannelData(0);
+  const winSamp = Math.floor(sr * 0.05);   // 50 ms window
+  const hopSamp = Math.floor(sr * 0.025);  // 25 ms hop
+  const count   = Math.floor((data.length - winSamp) / hopSamp);
+  if (count < 20) return null;
+
+  // RMS energy per window
+  const energy = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    let sum = 0;
+    const s = i * hopSamp;
+    for (let j = s; j < s + winSamp; j++) sum += data[j] * data[j];
+    energy[i] = Math.sqrt(sum / winSamp);
+  }
+
+  // Local-maxima onset detection above a threshold
+  const mean      = energy.reduce((a, b) => a + b, 0) / count;
+  const threshold = mean * 1.5;
+  const minGap    = Math.round(0.15 / (hopSamp / sr)); // min 150 ms between onsets
+  const onsets    = [];
+  for (let i = 2; i < count - 2; i++) {
+    if (energy[i] < threshold) continue;
+    if (energy[i] < energy[i - 1] || energy[i] < energy[i + 1]) continue;
+    if (onsets.length && i - onsets[onsets.length - 1] < minGap) continue;
+    onsets.push(i);
+  }
+  if (onsets.length < 4) return null;
+
+  // Inter-onset intervals in ms → histogram (10 ms bins)
+  const bins = {};
+  for (let i = 1; i < onsets.length; i++) {
+    const ms     = Math.round((onsets[i] - onsets[i - 1]) * hopSamp / sr * 1000);
+    const bucket = Math.round(ms / 10) * 10;
+    bins[bucket] = (bins[bucket] || 0) + 1;
+  }
+  const [bestMs] = Object.entries(bins).sort((a, b) => b[1] - a[1])[0];
+  const rawBpm   = Math.round(60_000 / parseFloat(bestMs));
+
+  // Fold into 60–200 BPM range by doubling / halving
+  let bpm = rawBpm;
+  while (bpm > 200) bpm = Math.round(bpm / 2);
+  while (bpm < 60)  bpm = Math.round(bpm * 2);
+  return (bpm >= 60 && bpm <= 200) ? bpm : null;
 }

@@ -655,6 +655,34 @@ body.dj-active .edit-hint     { display: none !important; }
   font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
   letter-spacing: 0.10em; color: var(--text-muted);
 }
+.jam-bpm-row {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%; padding: 2px 0;
+}
+.jam-bpm-label {
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.10em; color: var(--text-dim); flex-shrink: 0;
+}
+.jam-bpm-input {
+  flex: 1; min-width: 0; padding: 7px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg);
+  font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--text); text-align: center;
+  outline: none; transition: border-color var(--t-mid);
+  -moz-appearance: textfield;
+}
+.jam-bpm-input::-webkit-inner-spin-button,
+.jam-bpm-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.jam-bpm-input:focus:not([readonly]) { border-color: var(--accent); }
+.jam-bpm-input[readonly] { color: var(--text-dim); cursor: default; }
+.jam-bpm-detect {
+  flex-shrink: 0; padding: 7px 10px; border-radius: var(--radius-sm);
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; background: var(--surface2); color: var(--text);
+  transition: background var(--t-fast), opacity var(--t-fast);
+}
+.jam-bpm-detect:hover:not(:disabled) { background: var(--surface3); }
+.jam-bpm-detect:disabled { opacity: 0.4; cursor: default; }
 .jam-copy-btn {
   width: 100%; padding: 10px; border-radius: var(--radius-sm);
   font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;

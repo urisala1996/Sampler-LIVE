@@ -30,11 +30,16 @@
             autocomplete="off" autocorrect="off" spellcheck="false">
           <button class="jam-action-btn jam-action-btn--secondary" id="jamJoinBtn">JOIN</button>
         </div>
-        <p class="jam-note">YouTube only · Everyone hears each other's pads</p>
+        <p class="jam-note">File mode: all load the same track · YouTube: paste the same URL</p>
       </div>
       <div id="jamActive" style="display:none">
         <div class="jam-code-display" id="jamRoomCode">——————</div>
         <div class="jam-participants" id="jamParticipants">1 PARTICIPANT</div>
+        <div class="jam-bpm-row">
+          <span class="jam-bpm-label">BPM</span>
+          <input class="jam-bpm-input" id="jamBpmInput" type="number" min="40" max="300" placeholder="—" readonly>
+          <button class="jam-bpm-detect" id="jamBpmDetectBtn" disabled>AUTO</button>
+        </div>
         <button class="jam-copy-btn" id="jamCopyBtn">COPY ROOM LINK</button>
         <button class="jam-leave-btn" id="jamLeaveBtn">LEAVE ROOM</button>
       </div>

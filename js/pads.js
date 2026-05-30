@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { formatTime } from './utils.js';
 import { icon } from './icons.js';
 import { triggerSamplerPad, stopSamplerAudio } from './sampler-audio.js';
-import { broadcastEvent } from './room.js';
+import { broadcastEvent, LOOKAHEAD_MS } from './room.js';
 
 // Injected by main.js to avoid circular dep with editor.js
 let _openEditor = () => {};
@@ -115,8 +115,9 @@ export function distributePads() {
 
 // ── Playback ──────────────────────────────────────────────────────────────────
 
-// remote = true when triggered by a room event — skips re-broadcast
-export function triggerPad(index, padEl, remote = false) {
+// remote = true when triggered by a room event — skips re-broadcast.
+// fireAt: wall-clock ms (Date.now()-based) for scheduled sync in file+room mode.
+export function triggerPad(index, padEl, remote = false, fireAt = null) {
   if (!state.songLoaded) return;
   if (state.samplerSource === 'youtube' && !state.player) return;
   if (state.samplerSource === 'file'    && !state.samplerAudioBuffer) return;
@@ -124,13 +125,21 @@ export function triggerPad(index, padEl, remote = false) {
 
   state.currentPad = { index, el: padEl };
   padEl.classList.add('playing');
-  state.padStartTime = Date.now();
 
   const seekTo = state.pads[index];
   const dur    = state.padDurations[index] ?? state.padDuration;
 
+  // Scheduled sync: only in file mode inside a room
+  let resolvedFireAt = null;
+  if (state.samplerSource === 'file' && state.roomActive) {
+    resolvedFireAt = remote ? fireAt : _computeFireAt();
+  }
+
+  // padStartTime = when audio fires (for progress bar alignment)
+  state.padStartTime = resolvedFireAt ?? Date.now();
+
   if (state.samplerSource === 'file') {
-    triggerSamplerPad(seekTo, dur);
+    triggerSamplerPad(seekTo, dur, resolvedFireAt);
   } else {
     state.player.seekTo(seekTo, true);
     state.player.playVideo();
@@ -143,15 +152,31 @@ export function triggerPad(index, padEl, remote = false) {
   stopBtn.innerHTML = icon('stop', 14);
 
   const bar = document.getElementById('bar' + index);
-  const totalMs = dur * 1000;
+  const totalMs  = dur * 1000;
+  const audioDelay = resolvedFireAt ? Math.max(0, resolvedFireAt - Date.now()) : 0;
   state.padProgressInterval = setInterval(() => {
-    const pct = Math.min(100, ((Date.now() - state.padStartTime) / totalMs) * 100);
+    const pct = Math.max(0, Math.min(100, ((Date.now() - state.padStartTime) / totalMs) * 100));
     if (bar) bar.style.width = pct + '%';
   }, 50);
 
-  state.padTimer = setTimeout(() => stopAll(), totalMs);
-  if (!remote && state.roomActive) broadcastEvent('pad_trigger', { index });
+  state.padTimer = setTimeout(() => stopAll(), totalMs + audioDelay);
+  if (!remote && state.roomActive) broadcastEvent('pad_trigger', { index, fireAt: resolvedFireAt });
   if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// Compute the next scheduled fire time (wall-clock ms).
+// Snaps to the beat grid when BPM is set; otherwise plain lookahead.
+function _computeFireAt() {
+  const now = Date.now();
+  if (state.roomBpm > 0 && state.roomBeatZero > 0) {
+    const beatMs = 60_000 / state.roomBpm;
+    const elapsed = (now + LOOKAHEAD_MS) - state.roomBeatZero;
+    // Use positive-safe modulo to get phase within current beat
+    const phase  = ((elapsed % beatMs) + beatMs) % beatMs;
+    const toNext = (beatMs - phase) % beatMs; // 0 if exactly on a beat
+    return now + LOOKAHEAD_MS + toNext;
+  }
+  return now + LOOKAHEAD_MS;
 }
 
 export function clearPadState() {

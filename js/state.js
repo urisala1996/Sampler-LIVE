@@ -65,7 +65,10 @@ export const state = {
   samplerFileName: '',           // display name (no extension)
 
   // Jam room
-  roomActive:   false,
-  roomId:       null,
-  roomClientId: crypto.randomUUID(),
+  roomActive:    false,
+  roomId:        null,
+  roomClientId:  crypto.randomUUID(),
+  roomIsCreator: false,
+  roomBpm:       0,     // 0 = free play (no beat quantization)
+  roomBeatZero:  0,     // Unix ms — beat-grid anchor set on room creation
 };

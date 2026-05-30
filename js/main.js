@@ -6,7 +6,7 @@ import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile, setSamplerSourceCallback } from './session.js';
 import { shareSession, getSessionFromHash, clearHash } from './share.js';
 import { initDjEvents, activateDj, deactivateDj } from './dj.js';
-import { loadSamplerFile, setOnLoadedCallback } from './sampler-audio.js';
+import { loadSamplerFile, setOnLoadedCallback, detectBpm } from './sampler-audio.js';
 import { createRoom, joinRoom, leaveRoom, setRoomHandlers, isRoomConfigured, broadcastEvent } from './room.js';
 import { icon } from './icons.js';
 import { showToast } from './utils.js';
@@ -100,27 +100,37 @@ function updateRoomBadge() {
 }
 
 async function handleCreateRoom() {
-  if (!state.songLoaded || state.samplerSource !== 'youtube') {
-    showToast('Load a YouTube song first');
+  if (!state.songLoaded) {
+    showToast('Load a song first');
     return;
   }
   const btn = document.getElementById('jamCreateBtn');
   btn.disabled = true;
   btn.textContent = 'CREATING...';
   try {
+    const isFile   = state.samplerSource === 'file';
+    const beatZero = Date.now();
+    state.roomBeatZero  = beatZero;
+    state.roomIsCreator = true;
     const code = await createRoom({
-      url:         document.getElementById('urlInput').value.trim(),
+      source:      state.samplerSource,
+      url:         isFile ? '' : document.getElementById('urlInput').value.trim(),
+      filename:    isFile ? state.samplerFileName : '',
       padCount:    state.padCount,
       padDuration: state.padDuration,
       pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+      bpm:         state.roomBpm,
+      beatZero,
     });
     document.getElementById('jamIdle').style.display   = 'none';
     document.getElementById('jamActive').style.display = '';
     document.getElementById('jamRoomCode').textContent = code;
+    _applyBpmUi(true);
     updateRoomBadge();
     showToast(`Room ${code} created`, 'success');
   } catch {
     showToast('Could not create room — check Firebase config');
+    state.roomIsCreator = false;
   } finally {
     btn.disabled = false;
     btn.textContent = 'CREATE ROOM';
@@ -146,22 +156,52 @@ async function _joinAndLoad(code) {
   if (!sessionData) { showToast('Room not found'); return; }
   closeJamPopup();
   updateRoomBadge();
-  document.getElementById('urlInput').value = sessionData.url;
+
+  state.roomBpm       = sessionData.bpm      ?? 0;
+  state.roomBeatZero  = sessionData.beatZero ?? 0;
+  state.roomIsCreator = false;
+
   state.pendingImport = {
     padCount:     sessionData.padCount,
     pads:         sessionData.pads.map(p => p.start),
     padDurations: sessionData.pads.map(p => p.dur),
   };
-  markRemoteLoad();
-  loadSong();
-  showToast(`Joined room ${code}`, 'success');
+  document.getElementById('jamIdle').style.display   = 'none';
+  document.getElementById('jamActive').style.display = '';
+  document.getElementById('jamRoomCode').textContent = code;
+  _applyBpmUi(false);
+
+  if ((sessionData.source ?? 'youtube') === 'file') {
+    // File mode: user must load the matching file manually
+    setSamplerSource('file');
+    const hint = sessionData.filename ? `"${sessionData.filename}"` : 'the audio file';
+    showToast(`Joined room ${code} — load ${hint} to play`, 'success');
+  } else {
+    document.getElementById('urlInput').value = sessionData.url;
+    markRemoteLoad();
+    loadSong();
+    showToast(`Joined room ${code}`, 'success');
+  }
 }
 
 function handleLeaveRoom() {
   leaveRoom();
+  state.roomIsCreator = false;
+  state.roomBpm       = 0;
+  state.roomBeatZero  = 0;
+  document.getElementById('jamBpmInput').value = '';
   closeJamPopup();
   updateRoomBadge();
   showToast('Left the room');
+}
+
+// Set BPM input/button editability based on whether we are the room creator
+function _applyBpmUi(isCreator) {
+  const input  = document.getElementById('jamBpmInput');
+  const detect = document.getElementById('jamBpmDetectBtn');
+  input.value    = state.roomBpm || '';
+  input.readOnly = !isCreator;
+  detect.disabled = !isCreator;
 }
 
 function handleCopyRoomLink() {
@@ -233,14 +273,36 @@ function init() {
     document.getElementById('jamCodeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoinRoom(); });
     document.getElementById('jamLeaveBtn').addEventListener('click', handleLeaveRoom);
     document.getElementById('jamCopyBtn').addEventListener('click', handleCopyRoomLink);
+    document.getElementById('jamBpmInput').addEventListener('change', () => {
+      if (!state.roomIsCreator) return;
+      const bpm = parseInt(document.getElementById('jamBpmInput').value, 10) || 0;
+      state.roomBpm = bpm;
+      if (state.roomActive) broadcastEvent('bpm_update', { bpm, beatZero: state.roomBeatZero });
+    });
+    document.getElementById('jamBpmDetectBtn').addEventListener('click', () => {
+      if (!state.roomIsCreator) return;
+      if (!state.samplerAudioBuffer) { showToast('Load an audio file first'); return; }
+      const bpm = detectBpm(state.samplerAudioBuffer);
+      if (bpm) {
+        document.getElementById('jamBpmInput').value = bpm;
+        state.roomBpm = bpm;
+        if (state.roomActive) broadcastEvent('bpm_update', { bpm, beatZero: state.roomBeatZero });
+        showToast(`Detected: ${bpm} BPM`, 'success');
+      } else {
+        showToast('Could not detect BPM — set manually');
+      }
+    });
 
     setRoomHandlers({
-      onPadTrigger: (index) => {
+      onPadTrigger: (index, fireAt) => {
         const padEl = document.querySelector(`.pad[data-index="${index}"]`);
-        if (padEl) triggerPad(index, padEl, true); // remote=true prevents re-broadcast
+        if (padEl) triggerPad(index, padEl, true, fireAt);
       },
-      onPadStop:       () => stopAll(),
+      onPadStop: () => stopAll(),
       onSessionUpdate: (data) => {
+        state.roomBpm      = data.bpm      ?? state.roomBpm;
+        state.roomBeatZero = data.beatZero ?? state.roomBeatZero;
+        _applyBpmUi(state.roomIsCreator);
         document.getElementById('urlInput').value = data.url;
         state.pendingImport = {
           padCount:     data.padCount,
@@ -249,6 +311,12 @@ function init() {
         };
         markRemoteLoad();
         loadSong();
+      },
+      onBpmUpdate: (data) => {
+        state.roomBpm      = data.bpm      ?? 0;
+        state.roomBeatZero = data.beatZero ?? state.roomBeatZero;
+        _applyBpmUi(state.roomIsCreator);
+        showToast(`BPM set to ${state.roomBpm || 'free play'}`);
       },
     });
   } else {

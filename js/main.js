@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { loadYTScript, loadSong } from './youtube.js';
+import { loadYTScript, loadSong, markRemoteLoad } from './youtube.js';
 import { renderEmptyPads, updateDur, changePads, stopAll, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport } from './pads.js';
 import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
@@ -152,6 +152,7 @@ async function _joinAndLoad(code) {
     pads:         sessionData.pads.map(p => p.start),
     padDurations: sessionData.pads.map(p => p.dur),
   };
+  markRemoteLoad();
   loadSong();
   showToast(`Joined room ${code}`, 'success');
 }
@@ -246,6 +247,7 @@ function init() {
           pads:         data.pads.map(p => p.start),
           padDurations: data.pads.map(p => p.dur),
         };
+        markRemoteLoad();
         loadSong();
       },
     });

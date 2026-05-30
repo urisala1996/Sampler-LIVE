@@ -5,19 +5,21 @@
 // 3. Go to Project Settings → General → Your apps → copy firebaseConfig
 // 4. Paste the values below, replacing the placeholder strings
 const FIREBASE_CONFIG = {
-  apiKey:            'YOUR_API_KEY',
-  authDomain:        'YOUR_PROJECT.firebaseapp.com',
-  databaseURL:       'https://YOUR_PROJECT-default-rtdb.firebaseio.com',
-  projectId:         'YOUR_PROJECT',
-  storageBucket:     'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId:             'YOUR_APP_ID',
+  apiKey: "AIzaSyCLc5YhjHGBtazAjKBOLWk36xUlBSE4Je8",
+  authDomain: "sampler-live.firebaseapp.com",
+  databaseURL: "https://sampler-live-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "sampler-live",
+  storageBucket: "sampler-live.firebasestorage.app",
+  messagingSenderId: "9657302816",
+  appId: "1:9657302816:web:b154d0488899f1f90f6145",
+  measurementId: "G-0WRC2GG09G"
 };
 
 const CONFIGURED = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
 
 import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, push, set, get, remove, onChildAdded, onValue, query, orderByChild, startAt }
+import { getDatabase, ref, push, set, get, remove, onChildAdded, onValue,
+         onDisconnect, query, orderByChild, startAt }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { state } from './state.js';
 
@@ -27,7 +29,8 @@ let _db              = null;
 let _eventsRef       = null;
 let _unsubEvents     = null;
 let _unsubPresence   = null;
-let _presenceNodeRef = null;
+let _presenceNodeRef   = null;
+let _participantCount  = 0;
 let _handlers = { onPadTrigger: () => {}, onPadStop: () => {}, onSessionUpdate: () => {} };
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -68,12 +71,16 @@ export async function joinRoom(code) {
 }
 
 export function leaveRoom() {
+  if (_participantCount <= 1 && state.roomId) {
+    remove(ref(_getDb(), `rooms/${state.roomId}`));
+  }
   if (_unsubEvents)    { _unsubEvents();    _unsubEvents   = null; }
   if (_unsubPresence)  { _unsubPresence();  _unsubPresence = null; }
   if (_presenceNodeRef){ remove(_presenceNodeRef); _presenceNodeRef = null; }
-  _eventsRef = null;
-  state.roomActive = false;
-  state.roomId     = null;
+  _eventsRef        = null;
+  _participantCount = 0;
+  state.roomActive  = false;
+  state.roomId      = null;
 }
 
 export function broadcastEvent(type, payload) {
@@ -120,13 +127,17 @@ function _writePresence(code) {
   const db = _getDb();
   _presenceNodeRef = ref(db, `rooms/${code}/presence/${state.roomClientId}`);
   set(_presenceNodeRef, { joinedAt: Date.now() });
+  onDisconnect(_presenceNodeRef).remove();
 }
 
 function _subscribePresence(code) {
   const db = _getDb();
   _unsubPresence = onValue(ref(db, `rooms/${code}/presence`), (snap) => {
-    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+    _participantCount = snap.exists() ? Object.keys(snap.val()).length : 0;
     const el = document.getElementById('jamParticipants');
-    if (el) el.textContent = count === 1 ? '1 PARTICIPANT' : `${count} PARTICIPANTS`;
+    if (el) el.textContent = _participantCount === 1 ? '1 PARTICIPANT' : `${_participantCount} PARTICIPANTS`;
+    if (_participantCount === 0 && state.roomId) {
+      remove(ref(db, `rooms/${state.roomId}`));
+    }
   });
 }

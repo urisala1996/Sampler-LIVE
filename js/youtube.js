@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { extractVideoId, showToast, setLoading, formatTime } from './utils.js';
 import { distributePads, restoreFromImport, stopAll } from './pads.js';
 import { djSyncAfterLoad } from './dj.js';
+import { broadcastEvent } from './room.js';
 
 export function loadYTScript() {
   if (location.protocol === 'file:') {
@@ -116,6 +117,15 @@ function finishLoad(dur, playerRef) {
   }
 
   djSyncAfterLoad();
+
+  if (state.roomActive) {
+    broadcastEvent('session_update', {
+      url:         document.getElementById('urlInput').value.trim(),
+      padCount:    state.padCount,
+      padDuration: state.padDuration,
+      pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+    });
+  }
 }
 
 function onPlayerError(event) {

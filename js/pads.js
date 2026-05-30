@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { formatTime } from './utils.js';
 import { icon } from './icons.js';
 import { triggerSamplerPad, stopSamplerAudio } from './sampler-audio.js';
+import { broadcastEvent } from './room.js';
 
 // Injected by main.js to avoid circular dep with editor.js
 let _openEditor = () => {};
@@ -114,7 +115,8 @@ export function distributePads() {
 
 // ── Playback ──────────────────────────────────────────────────────────────────
 
-export function triggerPad(index, padEl) {
+// remote = true when triggered by a room event — skips re-broadcast
+export function triggerPad(index, padEl, remote = false) {
   if (!state.songLoaded) return;
   if (state.samplerSource === 'youtube' && !state.player) return;
   if (state.samplerSource === 'file'    && !state.samplerAudioBuffer) return;
@@ -148,6 +150,7 @@ export function triggerPad(index, padEl) {
   }, 50);
 
   state.padTimer = setTimeout(() => stopAll(), totalMs);
+  if (!remote && state.roomActive) broadcastEvent('pad_trigger', { index });
   if (navigator.vibrate) navigator.vibrate(30);
 }
 

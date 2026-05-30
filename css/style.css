@@ -175,6 +175,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px;
 .session-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 .session-btn:hover { border-color: var(--accent); color: var(--accent); }
 .session-btn:active { transform: scale(0.96); }
+.session-btn--share { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.session-btn--share:hover { background: var(--accent); color: var(--bg); }
 
 /* ── Info bar ─────────────────────────────────────────────────────────────── */
 .info-bar {
@@ -486,5 +488,4 @@ body.dj-active .edit-hint     { display: none !important; }
 .file-row { display: flex; gap: 8px; align-items: stretch; }
 .file-drop-target { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 11px 14px; transition: border-color var(--t-mid), background var(--t-mid); }
 .file-drop-target.drag-over { border-color: var(--accent); background: var(--surface2); }
-.file-name-display { flex: 1; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-name-display.loaded { color: var(--text); }
+.file-name-display { flex: 1; font-family: 'Space Mono', 

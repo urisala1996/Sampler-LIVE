@@ -4,6 +4,7 @@ import { renderEmptyPads, updateDur, changePads, stopAll, setOpenEditorCallback,
 import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile, setSamplerSourceCallback } from './session.js';
+import { shareSession, getSessionFromHash, clearHash } from './share.js';
 import { initDjEvents, activateDj, deactivateDj } from './dj.js';
 import { loadSamplerFile, setOnLoadedCallback } from './sampler-audio.js';
 import { icon } from './icons.js';
@@ -91,6 +92,7 @@ function init() {
   document.getElementById('exportBtn').addEventListener('click', exportSession);
   document.getElementById('importBtn').addEventListener('click', triggerImportPicker);
   document.getElementById('importFile').addEventListener('change', (e) => handleImportFile(e.target.files[0]));
+  document.getElementById('shareBtn').addEventListener('click', shareSession);
 
   // Source toggle
   document.getElementById('srcYoutubeBtn').addEventListener('click', () => setSamplerSource('youtube'));
@@ -117,14 +119,3 @@ function init() {
   document.getElementById('djModeBtn').addEventListener('click',     () => setView('dj'));
 
   // Subsystems
-  initEditorEvents();
-  initDjEvents();
-  initKeyboard();
-  loadYTScript();
-
-  // Initial render
-  renderEmptyPads();
-  updateDur();
-}
-
-init();

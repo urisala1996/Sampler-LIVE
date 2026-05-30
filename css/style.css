@@ -454,6 +454,106 @@ body.dj-active .edit-hint     { display: none !important; }
 /* ── Hidden YT player ────────────────────────────────────────────────────── */
 #yt-container { position: fixed; bottom: -300px; left: 0; width: 1px; height: 1px; overflow: hidden; pointer-events: none; opacity: 0; }
 
+/* ── Share modal ─────────────────────────────────────────────────────────── */
+.share-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15,14,12,0.45);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+.share-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 360px;
+  box-shadow: 0 8px 32px rgba(15,14,12,0.18);
+  animation: slideUp 0.18s ease;
+  overflow: hidden;
+}
+@keyframes slideUp { from { transform: translateY(12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+
+.share-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.share-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--text);
+}
+.share-close {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all var(--t-fast);
+}
+.share-close:hover { background: var(--surface2); color: var(--text); }
+
+.share-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.share-url-row {
+  display: flex; gap: 8px;
+}
+.share-url-input {
+  flex: 1; min-width: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; color: var(--text);
+  cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.share-url-input:focus { outline: 1.5px solid var(--accent); }
+
+.share-copy-btn {
+  flex-shrink: 0;
+  background: var(--accent); color: var(--bg);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: all var(--t-fast);
+  letter-spacing: 0.05em;
+}
+.share-copy-btn:hover { opacity: 0.85; }
+.share-copy-btn:active { transform: scale(0.96); }
+.share-copy-btn.copied { background: #16a34a; }
+
+.share-qr-wrap {
+  display: flex; justify-content: center; align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px; min-height: 214px;
+}
+.share-qr-loading {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; color: var(--text-dim);
+}
+#shareQrTarget canvas,
+#shareQrTarget img {
+  border-radius: 4px;
+  display: block;
+}
+
+.share-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 8px 0 4px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.share-empty svg { opacity: 0.35; }
+.share-empty p { font-size: 13px; line-height: 1.55; }
+.share-empty strong { color: var(--text); font-weight: 600; }
+
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed; bottom: 24px; left: 50%;
@@ -488,4 +588,5 @@ body.dj-active .edit-hint     { display: none !important; }
 .file-row { display: flex; gap: 8px; align-items: stretch; }
 .file-drop-target { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 11px 14px; transition: border-color var(--t-mid), background var(--t-mid); }
 .file-drop-target.drag-over { border-color: var(--accent); background: var(--surface2); }
-.file-name-display { flex: 1; font-family: 'Space Mono', 
+.file-name-display { flex: 1; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-name-display.loaded { color: var(--text); }

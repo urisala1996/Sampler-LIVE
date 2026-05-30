@@ -119,3 +119,32 @@ function init() {
   document.getElementById('djModeBtn').addEventListener('click',     () => setView('dj'));
 
   // Subsystems
+  initEditorEvents();
+  initDjEvents();
+  initKeyboard();
+
+  // Restore shared session from URL hash
+  const sharedSession = getSessionFromHash();
+  if (sharedSession && sharedSession.source === 'youtube' && sharedSession.url && Array.isArray(sharedSession.pads)) {
+    state.pendingImport = {
+      padCount:     sharedSession.pads.length,
+      pads:         sharedSession.pads.map(p => Number(p.start)),
+      padDurations: sharedSession.pads.map(p => Number(p.dur)),
+    };
+    document.getElementById('urlInput').value = sharedSession.url;
+    clearHash();
+  }
+
+  loadYTScript();
+
+  // Auto-load song if we restored from URL hash (YT API may not be ready yet — loadSong handles the wait)
+  if (sharedSession && state.pendingImport) {
+    loadSong();
+  }
+
+  // Initial render
+  renderEmptyPads();
+  updateDur();
+}
+
+init();

@@ -141,3 +141,54 @@ export function detectBpm(audioBuffer) {
   while (bpm < 60)  bpm = Math.round(bpm * 2);
   return (bpm >= 60 && bpm <= 200) ? bpm : null;
 }
+
+// ── Smart sample-point detection ──────────────────────────────────────────────
+// Finds the most energetic moments in an AudioBuffer and returns padCount
+// { start, dur } pairs sorted chronologically. Returns null if the audio
+// doesn't have enough clear onsets (e.g. silence or a pure tone).
+export function detectSamplePoints(audioBuffer, padCount) {
+  if (!audioBuffer || padCount < 1) return null;
+  const sr      = audioBuffer.sampleRate;
+  const data    = audioBuffer.getChannelData(0);
+  const winSamp = Math.floor(sr * 0.05);   // 50 ms window
+  const hopSamp = Math.floor(sr * 0.025);  // 25 ms hop
+  const count   = Math.floor((data.length - winSamp) / hopSamp);
+  if (count < 20) return null;
+
+  const energy = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    let sum = 0;
+    const s = i * hopSamp;
+    for (let j = s; j < s + winSamp; j++) sum += data[j] * data[j];
+    energy[i] = Math.sqrt(sum / winSamp);
+  }
+
+  // 500 ms minimum gap — want distinct musical moments, not every beat
+  const mean      = energy.reduce((a, b) => a + b, 0) / count;
+  const threshold = mean * 1.5;
+  const minGap    = Math.round(0.5 / (hopSamp / sr));
+  const onsets    = [];
+  for (let i = 2; i < count - 2; i++) {
+    if (energy[i] < threshold) continue;
+    if (energy[i] < energy[i - 1] || energy[i] < energy[i + 1]) continue;
+    if (onsets.length && i - onsets[onsets.length - 1].w < minGap) continue;
+    onsets.push({ w: i, time: i * hopSamp / sr, strength: energy[i] });
+  }
+  if (onsets.length < 2) return null;
+
+  // Take the strongest N, then re-sort by time
+  const selected = [...onsets]
+    .sort((a, b) => b.strength - a.strength)
+    .slice(0, padCount)
+    .sort((a, b) => a.time - b.time);
+
+  const maxDur = (state.padDuration || 2) * 2;
+  return selected.map((onset, i) => {
+    const nextTime = i < selected.length - 1 ? selected[i + 1].time : audioBuffer.duration;
+    const gap = nextTime - onset.time;
+    return {
+      start: Math.round(onset.time * 100) / 100,
+      dur:   Math.round(Math.min(Math.max(gap * 0.75, 0.5), maxDur) * 10) / 10,
+    };
+  });
+}

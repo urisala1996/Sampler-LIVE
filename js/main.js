@@ -1,12 +1,12 @@
 import { state } from './state.js';
 import { loadYTScript, loadSong, markRemoteLoad } from './youtube.js';
-import { renderEmptyPads, updateDur, changePads, stopAll, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport } from './pads.js';
+import { renderEmptyPads, updateDur, changePads, stopAll, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport, smartDistributePads } from './pads.js';
 import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile, setSamplerSourceCallback } from './session.js';
 import { shareSession, getSessionFromHash, clearHash } from './share.js';
 import { initDjEvents, activateDj, deactivateDj } from './dj.js';
-import { loadSamplerFile, setOnLoadedCallback, detectBpm } from './sampler-audio.js';
+import { loadSamplerFile, setOnLoadedCallback, detectBpm, detectSamplePoints } from './sampler-audio.js';
 import { createRoom, joinRoom, leaveRoom, setRoomHandlers, isRoomConfigured, broadcastEvent } from './room.js';
 import { icon } from './icons.js';
 import { showToast } from './utils.js';
@@ -254,6 +254,20 @@ function init() {
     e.preventDefault();
     fileRow.querySelector('.file-drop-target').classList.remove('drag-over');
     if (e.dataTransfer.files[0]) loadSamplerFile(e.dataTransfer.files[0]);
+  });
+
+  // Auto sample-point detection
+  document.getElementById('magicPadsBtn').addEventListener('click', () => {
+    if (state.samplerSource !== 'file' || !state.samplerAudioBuffer) {
+      showToast('Load an audio file first'); return;
+    }
+    const points = detectSamplePoints(state.samplerAudioBuffer, state.padCount);
+    if (points) {
+      smartDistributePads(points);
+      showToast('Sample points detected!', 'success');
+    } else {
+      showToast('No clear patterns found — try adjusting pad count');
+    }
   });
 
   // View toggle

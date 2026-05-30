@@ -148,6 +148,18 @@ body {
 }
 .param-btn:active { background: var(--surface3); transform: scale(0.96); }
 
+.magic-row { display: flex; }
+.magic-btn {
+  flex: 1; font: 700 10px/1 'Space Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+  padding: 7px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: border-color var(--t-fast), color var(--t-fast);
+}
+.magic-btn:hover { border-color: var(--pad-playing); color: var(--pad-playing); }
+.magic-btn:active { transform: scale(0.97); opacity: 0.85; }
+.magic-btn:disabled { opacity: .4; pointer-events: none; }
+
 .duration-row { display: flex; align-items: center; gap: 10px; }
 .duration-label { font-size: 10px; color: var(--text-muted); font-family: 'Space Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
 input[type=range] { -webkit-appearance: none; flex: 1; height: 3px; background: var(--surface3); border-radius: 2px; outline: none; cursor: pointer; }

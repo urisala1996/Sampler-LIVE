@@ -99,6 +99,14 @@ export function updatePadTimeLabel(index) {
 
 // ── Distribution ──────────────────────────────────────────────────────────────
 
+export function smartDistributePads(points) {
+  state.padCount     = points.length;
+  state.pads         = points.map(p => p.start);
+  state.padDurations = points.map(p => p.dur);
+  document.getElementById('padCountVal').textContent = state.padCount;
+  renderPads();
+}
+
 export function distributePads() {
   if (!state.songLoaded) return;
   const margin = state.songDuration * 0.05;

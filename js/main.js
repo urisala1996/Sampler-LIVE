@@ -1,13 +1,15 @@
 import { state } from './state.js';
-import { loadYTScript, loadSong } from './youtube.js';
-import { renderEmptyPads, updateDur, changePads, stopAll, setOpenEditorCallback, distributePads, restoreFromImport } from './pads.js';
+import { loadYTScript, loadSong, markRemoteLoad } from './youtube.js';
+import { renderEmptyPads, updateDur, changePads, stopAll, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport } from './pads.js';
 import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile, setSamplerSourceCallback } from './session.js';
 import { shareSession, getSessionFromHash, clearHash } from './share.js';
 import { initDjEvents, activateDj, deactivateDj } from './dj.js';
 import { loadSamplerFile, setOnLoadedCallback } from './sampler-audio.js';
+import { createRoom, joinRoom, leaveRoom, setRoomHandlers, isRoomConfigured, broadcastEvent } from './room.js';
 import { icon } from './icons.js';
+import { showToast } from './utils.js';
 
 // ── Source toggle ─────────────────────────────────────────────────────────────
 
@@ -72,6 +74,103 @@ function setView(view) {
   }
 }
 
+// ── Jam room ──────────────────────────────────────────────────────────────────
+
+function toggleJamPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('jamPopup');
+  if (popup.classList.contains('open')) {
+    closeJamPopup();
+  } else {
+    const inRoom = state.roomActive;
+    document.getElementById('jamIdle').style.display   = inRoom ? 'none' : '';
+    document.getElementById('jamActive').style.display = inRoom ? ''     : 'none';
+    if (inRoom) document.getElementById('jamRoomCode').textContent = state.roomId;
+    popup.classList.add('open');
+    if (!inRoom) document.getElementById('jamCodeInput').focus();
+  }
+}
+
+function closeJamPopup() {
+  document.getElementById('jamPopup').classList.remove('open');
+}
+
+function updateRoomBadge() {
+  document.getElementById('jamBtn').classList.toggle('active', state.roomActive);
+}
+
+async function handleCreateRoom() {
+  if (!state.songLoaded || state.samplerSource !== 'youtube') {
+    showToast('Load a YouTube song first');
+    return;
+  }
+  const btn = document.getElementById('jamCreateBtn');
+  btn.disabled = true;
+  btn.textContent = 'CREATING...';
+  try {
+    const code = await createRoom({
+      url:         document.getElementById('urlInput').value.trim(),
+      padCount:    state.padCount,
+      padDuration: state.padDuration,
+      pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+    });
+    document.getElementById('jamIdle').style.display   = 'none';
+    document.getElementById('jamActive').style.display = '';
+    document.getElementById('jamRoomCode').textContent = code;
+    updateRoomBadge();
+    showToast(`Room ${code} created`, 'success');
+  } catch {
+    showToast('Could not create room — check Firebase config');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'CREATE ROOM';
+  }
+}
+
+async function handleJoinRoom() {
+  const code = document.getElementById('jamCodeInput').value.trim().toUpperCase();
+  if (code.length < 4) { showToast('Enter a valid room code'); return; }
+  const btn = document.getElementById('jamJoinBtn');
+  btn.disabled = true;
+  btn.textContent = 'JOINING...';
+  try {
+    await _joinAndLoad(code);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'JOIN';
+  }
+}
+
+async function _joinAndLoad(code) {
+  const sessionData = await joinRoom(code);
+  if (!sessionData) { showToast('Room not found'); return; }
+  closeJamPopup();
+  updateRoomBadge();
+  document.getElementById('urlInput').value = sessionData.url;
+  state.pendingImport = {
+    padCount:     sessionData.padCount,
+    pads:         sessionData.pads.map(p => p.start),
+    padDurations: sessionData.pads.map(p => p.dur),
+  };
+  markRemoteLoad();
+  loadSong();
+  showToast(`Joined room ${code}`, 'success');
+}
+
+function handleLeaveRoom() {
+  leaveRoom();
+  closeJamPopup();
+  updateRoomBadge();
+  showToast('Left the room');
+}
+
+function handleCopyRoomLink() {
+  const url = `${location.origin}${location.pathname}?room=${state.roomId}`;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Room link copied!', 'success'))
+    .catch(() => showToast('Copy failed — share the code manually'));
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 function init() {
@@ -83,7 +182,10 @@ function init() {
   // Config panel
   document.getElementById('loadBtn').addEventListener('click', loadSong);
   document.getElementById('editModeBtn').addEventListener('click', toggleEditMode);
-  document.getElementById('stopBtn').addEventListener('click', stopAll);
+  document.getElementById('stopBtn').addEventListener('click', () => {
+    stopAll();
+    if (state.roomActive) broadcastEvent('pad_stop', {});
+  });
   document.getElementById('padMinus4').addEventListener('click', () => changePads(-4));
   document.getElementById('padMinus1').addEventListener('click', () => changePads(-1));
   document.getElementById('padPlus1').addEventListener('click',  () => changePads(1));
@@ -118,6 +220,41 @@ function init() {
   document.getElementById('sampleModeBtn').addEventListener('click', () => setView('sampler'));
   document.getElementById('djModeBtn').addEventListener('click',     () => setView('dj'));
 
+  // Jam room
+  if (isRoomConfigured()) {
+    document.getElementById('jamWrapper').style.display = '';
+    document.getElementById('jamBtn').addEventListener('click', toggleJamPopup);
+    // Close popup when clicking anywhere outside the jam wrapper
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#jamWrapper')) closeJamPopup();
+    });
+    document.getElementById('jamCreateBtn').addEventListener('click', handleCreateRoom);
+    document.getElementById('jamJoinBtn').addEventListener('click', handleJoinRoom);
+    document.getElementById('jamCodeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoinRoom(); });
+    document.getElementById('jamLeaveBtn').addEventListener('click', handleLeaveRoom);
+    document.getElementById('jamCopyBtn').addEventListener('click', handleCopyRoomLink);
+
+    setRoomHandlers({
+      onPadTrigger: (index) => {
+        const padEl = document.querySelector(`.pad[data-index="${index}"]`);
+        if (padEl) triggerPad(index, padEl, true); // remote=true prevents re-broadcast
+      },
+      onPadStop:       () => stopAll(),
+      onSessionUpdate: (data) => {
+        document.getElementById('urlInput').value = data.url;
+        state.pendingImport = {
+          padCount:     data.padCount,
+          pads:         data.pads.map(p => p.start),
+          padDurations: data.pads.map(p => p.dur),
+        };
+        markRemoteLoad();
+        loadSong();
+      },
+    });
+  } else {
+    document.getElementById('jamWrapper').style.display = 'none';
+  }
+
   // Subsystems
   initEditorEvents();
   initDjEvents();
@@ -137,9 +274,18 @@ function init() {
 
   loadYTScript();
 
-  // Auto-load song if we restored from URL hash (YT API may not be ready yet — loadSong handles the wait)
+  // Auto-load from URL hash share
   if (sharedSession && state.pendingImport) {
     loadSong();
+  }
+
+  // Auto-join room from ?room=CODE query param
+  if (isRoomConfigured()) {
+    const urlRoom = new URLSearchParams(location.search).get('room');
+    if (urlRoom) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      _joinAndLoad(urlRoom.toUpperCase());
+    }
   }
 
   // Initial render

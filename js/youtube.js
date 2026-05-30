@@ -2,6 +2,12 @@ import { state } from './state.js';
 import { extractVideoId, showToast, setLoading, formatTime } from './utils.js';
 import { distributePads, restoreFromImport, stopAll } from './pads.js';
 import { djSyncAfterLoad } from './dj.js';
+import { broadcastEvent } from './room.js';
+
+// Set to true before calling loadSong() for remote-triggered loads so finishLoad
+// doesn't re-broadcast session_update back to the room (would cause an infinite reload loop)
+let _remoteLoad = false;
+export function markRemoteLoad() { _remoteLoad = true; }
 
 export function loadYTScript() {
   if (location.protocol === 'file:') {
@@ -116,6 +122,16 @@ function finishLoad(dur, playerRef) {
   }
 
   djSyncAfterLoad();
+
+  if (state.roomActive && !_remoteLoad) {
+    broadcastEvent('session_update', {
+      url:         document.getElementById('urlInput').value.trim(),
+      padCount:    state.padCount,
+      padDuration: state.padDuration,
+      pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+    });
+  }
+  _remoteLoad = false;
 }
 
 function onPlayerError(event) {

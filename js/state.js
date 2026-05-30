@@ -63,4 +63,9 @@ export const state = {
   samplerAudioContext: null,     // AudioContext (lazy init)
   samplerAudioSource: null,      // current AudioBufferSourceNode
   samplerFileName: '',           // display name (no extension)
+
+  // Jam room
+  roomActive:   false,
+  roomId:       null,
+  roomClientId: crypto.randomUUID(),
 };

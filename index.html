@@ -14,6 +14,33 @@
     <button class="toggle-opt active" id="sampleModeBtn">SAMPLE</button>
     <button class="toggle-opt" id="djModeBtn">DJ</button>
   </div>
+
+  <!-- JAM button + anchored popup (shown only when Firebase is configured) -->
+  <div class="jam-wrapper" id="jamWrapper" style="display:none">
+    <button class="jam-header-btn" id="jamBtn">
+      <span class="jam-live-dot"></span>
+      JAM
+    </button>
+    <div class="jam-popup" id="jamPopup">
+      <div id="jamIdle">
+        <button class="jam-action-btn" id="jamCreateBtn">CREATE ROOM</button>
+        <div class="jam-divider">— OR —</div>
+        <div class="jam-join-row">
+          <input class="jam-code-input" id="jamCodeInput" placeholder="ENTER CODE" maxlength="6"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+          <button class="jam-action-btn jam-action-btn--secondary" id="jamJoinBtn">JOIN</button>
+        </div>
+        <p class="jam-note">YouTube only · Everyone hears each other's pads</p>
+      </div>
+      <div id="jamActive" style="display:none">
+        <div class="jam-code-display" id="jamRoomCode">——————</div>
+        <div class="jam-participants" id="jamParticipants">1 PARTICIPANT</div>
+        <button class="jam-copy-btn" id="jamCopyBtn">COPY ROOM LINK</button>
+        <button class="jam-leave-btn" id="jamLeaveBtn">LEAVE ROOM</button>
+      </div>
+    </div>
+  </div>
+
   <div class="header-right">
     <button class="edit-mode-btn" id="editModeBtn">
       <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>

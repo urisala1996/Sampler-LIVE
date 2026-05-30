@@ -41,23 +41,19 @@ export function confirmSamplePoint() {
   closeEditor();
 }
 
-// ── Waveform (decorative) ─────────────────────────────────────────────────────
+// ── Waveform ──────────────────────────────────────────────────────────────────
 
 function drawWaveform() {
   const canvas = document.getElementById('waveCanvas');
-  const wrap = document.getElementById('timelineWrap');
-  const W = wrap.clientWidth;
-  const H = wrap.clientHeight;
-  canvas.width = W * window.devicePixelRatio;
+  const wrap   = document.getElementById('timelineWrap');
+  const W      = wrap.clientWidth;
+  const H      = wrap.clientHeight;
+  canvas.width  = W * window.devicePixelRatio;
   canvas.height = H * window.devicePixelRatio;
-  canvas.style.width = W + 'px';
+  canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
+  const ctx  = canvas.getContext('2d');
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-  // Seeded pseudo-random — stable shape per song duration
-  const seed = state.songDuration * 137.5;
-  const rng = (n) => Math.sin(n * seed * 0.01 + n) * 0.5 + 0.5;
 
   const bars = Math.floor(W / 3);
   const barW = W / bars;
@@ -65,12 +61,31 @@ function drawWaveform() {
   ctx.fillStyle = '#f0ede8';
   ctx.fillRect(0, 0, W, H);
 
-  for (let i = 0; i < bars; i++) {
-    const h = (0.15 + rng(i) * 0.7) * H;
-    const y = (H - h) / 2;
-    const alpha = 0.18 + rng(i + 1000) * 0.30;
-    ctx.fillStyle = `rgba(15,14,12,${alpha})`;
-    ctx.fillRect(i * barW + 1, y, barW - 1, h);
+  if (state.samplerSource === 'file' && state.samplerAudioBuffer) {
+    const data = state.samplerAudioBuffer.getChannelData(0);
+    const len  = data.length;
+    for (let i = 0; i < bars; i++) {
+      const start = Math.floor(i / bars * len);
+      const end   = Math.floor((i + 1) / bars * len);
+      const step  = Math.max(1, Math.floor((end - start) / 64));
+      let peak = 0;
+      for (let j = start; j < end; j += step) {
+        const s = Math.abs(data[j]);
+        if (s > peak) peak = s;
+      }
+      const h = Math.max(2, peak * H * 0.85);
+      ctx.fillStyle = `rgba(15,14,12,${(0.15 + peak * 0.55).toFixed(2)})`;
+      ctx.fillRect(i * barW + 1, (H - h) / 2, barW - 1, h);
+    }
+  } else {
+    // Seeded placeholder — YouTube mode (no audio data accessible)
+    const seed = state.songDuration * 137.5;
+    const rng  = (n) => Math.sin(n * seed * 0.01 + n) * 0.5 + 0.5;
+    for (let i = 0; i < bars; i++) {
+      const h = (0.15 + rng(i) * 0.7) * H;
+      ctx.fillStyle = `rgba(15,14,12,${(0.18 + rng(i + 1000) * 0.30).toFixed(2)})`;
+      ctx.fillRect(i * barW + 1, (H - h) / 2, barW - 1, h);
+    }
   }
 }
 

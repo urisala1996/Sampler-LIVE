@@ -14,8 +14,34 @@
     <button class="toggle-opt active" id="sampleModeBtn">SAMPLE</button>
     <button class="toggle-opt" id="djModeBtn">DJ</button>
   </div>
+
+  <!-- JAM button + anchored popup (shown only when Firebase is configured) -->
+  <div class="jam-wrapper" id="jamWrapper" style="display:none">
+    <button class="jam-header-btn" id="jamBtn">
+      <span class="jam-live-dot"></span>
+      JAM
+    </button>
+    <div class="jam-popup" id="jamPopup">
+      <div id="jamIdle">
+        <button class="jam-action-btn" id="jamCreateBtn">CREATE ROOM</button>
+        <div class="jam-divider">— OR —</div>
+        <div class="jam-join-row">
+          <input class="jam-code-input" id="jamCodeInput" placeholder="ENTER CODE" maxlength="6"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+          <button class="jam-action-btn jam-action-btn--secondary" id="jamJoinBtn">JOIN</button>
+        </div>
+        <p class="jam-note">YouTube only · Everyone hears each other's pads</p>
+      </div>
+      <div id="jamActive" style="display:none">
+        <div class="jam-code-display" id="jamRoomCode">——————</div>
+        <div class="jam-participants" id="jamParticipants">1 PARTICIPANT</div>
+        <button class="jam-copy-btn" id="jamCopyBtn">COPY ROOM LINK</button>
+        <button class="jam-leave-btn" id="jamLeaveBtn">LEAVE ROOM</button>
+      </div>
+    </div>
+  </div>
+
   <div class="header-right">
-    <span class="room-badge" id="roomBadge" style="display:none"></span>
     <button class="edit-mode-btn" id="editModeBtn">
       <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
       EDIT
@@ -71,10 +97,6 @@
     <button class="session-btn session-btn--share" id="shareBtn">
       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       SHARE
-    </button>
-    <button class="session-btn session-btn--jam" id="jamBtn" style="display:none">
-      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      JAM
     </button>
   </div>
 </div>
@@ -196,33 +218,6 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       SET POINT
     </button>
-  </div>
-</div>
-
-<!-- Jam room modal -->
-<div class="modal-backdrop" id="jamBackdrop"></div>
-<div class="jam-modal" id="jamModal">
-  <div class="jam-modal-header">
-    <span class="jam-modal-title">JAM ROOM</span>
-    <button class="jam-modal-close" id="jamModalClose">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-    </button>
-  </div>
-  <div id="jamIdle">
-    <button class="jam-action-btn" id="jamCreateBtn">CREATE ROOM</button>
-    <div class="jam-divider">— OR —</div>
-    <div class="jam-join-row">
-      <input class="jam-code-input" id="jamCodeInput" placeholder="ENTER ROOM CODE" maxlength="6"
-        autocomplete="off" autocorrect="off" spellcheck="false">
-      <button class="jam-action-btn jam-action-btn--secondary" id="jamJoinBtn">JOIN</button>
-    </div>
-    <p class="jam-note">YouTube mode only · Everyone hears each other's pads</p>
-  </div>
-  <div id="jamActive" style="display:none">
-    <div class="jam-code-display" id="jamRoomCode">——————</div>
-    <div class="jam-participants" id="jamParticipants">1 PARTICIPANT</div>
-    <button class="jam-copy-btn" id="jamCopyBtn">COPY ROOM LINK</button>
-    <button class="jam-leave-btn" id="jamLeaveBtn">LEAVE ROOM</button>
   </div>
 </div>
 

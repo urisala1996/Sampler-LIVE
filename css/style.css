@@ -591,68 +591,54 @@ body.dj-active .edit-hint     { display: none !important; }
 .file-name-display { flex: 1; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-name-display.loaded { color: var(--text); }
 
-/* ── Jam room button ─────────────────────────────────────────────────────── */
-.session-btn--jam { color: var(--accent); }
-body.room-active .session-btn--jam { background: var(--accent); color: #fff; }
-
-/* ── Room badge (header) ─────────────────────────────────────────────────── */
-.room-badge {
-  font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
-  letter-spacing: 0.12em; color: #fff; background: var(--accent);
-  padding: 3px 7px; border-radius: var(--radius-sm);
-  animation: pulse 2s ease-in-out infinite;
+/* ── JAM header button ───────────────────────────────────────────────────── */
+.jam-wrapper { position: relative; }
+.jam-header-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.10em; padding: 6px 14px; border-radius: 20px;
+  background: var(--surface2); color: var(--text-muted);
+  border: 1px solid var(--border); transition: all var(--t-mid);
 }
-@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.7 } }
-
-/* ── Modal backdrop ──────────────────────────────────────────────────────── */
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(6px);
-  opacity: 0; pointer-events: none; transition: opacity var(--t-mid); z-index: 200;
+.jam-header-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.jam-live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  display: none; flex-shrink: 0;
 }
-.modal-backdrop.show { opacity: 1; pointer-events: all; }
+.jam-header-btn.active .jam-live-dot { display: block; animation: livePulse 1.5s ease-in-out infinite; }
+@keyframes livePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
 
-/* ── Jam modal card ──────────────────────────────────────────────────────── */
-.jam-modal {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.97);
-  width: min(340px, calc(100vw - 32px));
+/* ── JAM popup ───────────────────────────────────────────────────────────── */
+.jam-popup {
+  position: absolute; top: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  width: min(280px, calc(100vw - 24px));
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  padding: 0; z-index: 201;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10); z-index: 200;
   opacity: 0; pointer-events: none;
   transition: opacity var(--t-mid), transform var(--t-mid);
 }
-.jam-modal.show { opacity: 1; pointer-events: all; transform: translate(-50%, -50%) scale(1); }
-
-.jam-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 16px 14px; border-bottom: 1px solid var(--border);
+.jam-popup.open {
+  opacity: 1; pointer-events: all;
+  transform: translateX(-50%) translateY(0);
 }
-.jam-modal-title {
-  font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.10em; color: var(--text);
-}
-.jam-modal-close {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  border-radius: var(--radius-sm); color: var(--text-muted);
-  transition: background var(--t-fast), color var(--t-fast);
-}
-.jam-modal-close:hover { background: var(--surface2); color: var(--text); }
 
 /* Idle panel */
-#jamIdle { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+#jamIdle { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .jam-action-btn {
-  width: 100%; padding: 13px; border-radius: var(--radius-sm);
-  font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+  width: 100%; padding: 11px; border-radius: var(--radius-sm);
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
   letter-spacing: 0.10em; background: var(--accent); color: #fff;
   transition: opacity var(--t-fast);
 }
 .jam-action-btn:disabled { opacity: 0.5; }
-.jam-action-btn--secondary { background: var(--surface2); color: var(--text); flex-shrink: 0; width: auto; padding: 13px 20px; }
+.jam-action-btn--secondary { background: var(--surface2); color: var(--text); flex-shrink: 0; width: auto; padding: 11px 16px; }
 .jam-divider { text-align: center; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em; }
-.jam-join-row { display: flex; gap: 8px; }
+.jam-join-row { display: flex; gap: 7px; }
 .jam-code-input {
-  flex: 1; min-width: 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: var(--radius-sm);
   border: 1px solid var(--border); background: var(--bg);
-  font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700;
+  font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
   letter-spacing: 0.16em; color: var(--text); text-transform: uppercase;
   outline: none; transition: border-color var(--t-mid);
 }
@@ -660,9 +646,9 @@ body.room-active .session-btn--jam { background: var(--accent); color: #fff; }
 .jam-note { font-size: 10px; color: var(--text-dim); text-align: center; letter-spacing: 0.03em; }
 
 /* Active panel */
-#jamActive { padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#jamActive { padding: 18px 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .jam-code-display {
-  font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700;
+  font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700;
   letter-spacing: 0.22em; color: var(--accent); text-align: center;
 }
 .jam-participants {
@@ -670,7 +656,7 @@ body.room-active .session-btn--jam { background: var(--accent); color: #fff; }
   letter-spacing: 0.10em; color: var(--text-muted);
 }
 .jam-copy-btn {
-  width: 100%; padding: 11px; border-radius: var(--radius-sm);
+  width: 100%; padding: 10px; border-radius: var(--radius-sm);
   font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
   letter-spacing: 0.10em; background: var(--surface2); color: var(--text);
   transition: background var(--t-fast);

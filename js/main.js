@@ -76,29 +76,27 @@ function setView(view) {
 
 // ── Jam room ──────────────────────────────────────────────────────────────────
 
-function openJamModal() {
-  const inRoom = state.roomActive;
-  document.getElementById('jamIdle').style.display   = inRoom ? 'none' : '';
-  document.getElementById('jamActive').style.display = inRoom ? ''     : 'none';
-  if (inRoom) document.getElementById('jamRoomCode').textContent = state.roomId;
-  document.getElementById('jamBackdrop').classList.add('show');
-  document.getElementById('jamModal').classList.add('show');
-  if (!inRoom) document.getElementById('jamCodeInput').focus();
+function toggleJamPopup(e) {
+  e.stopPropagation();
+  const popup = document.getElementById('jamPopup');
+  if (popup.classList.contains('open')) {
+    closeJamPopup();
+  } else {
+    const inRoom = state.roomActive;
+    document.getElementById('jamIdle').style.display   = inRoom ? 'none' : '';
+    document.getElementById('jamActive').style.display = inRoom ? ''     : 'none';
+    if (inRoom) document.getElementById('jamRoomCode').textContent = state.roomId;
+    popup.classList.add('open');
+    if (!inRoom) document.getElementById('jamCodeInput').focus();
+  }
 }
 
-function closeJamModal() {
-  document.getElementById('jamBackdrop').classList.remove('show');
-  document.getElementById('jamModal').classList.remove('show');
+function closeJamPopup() {
+  document.getElementById('jamPopup').classList.remove('open');
 }
 
 function updateRoomBadge() {
-  const badge = document.getElementById('roomBadge');
-  if (state.roomActive) {
-    badge.textContent = state.roomId;
-    badge.style.display = '';
-  } else {
-    badge.style.display = 'none';
-  }
+  document.getElementById('jamBtn').classList.toggle('active', state.roomActive);
 }
 
 async function handleCreateRoom() {
@@ -146,7 +144,7 @@ async function handleJoinRoom() {
 async function _joinAndLoad(code) {
   const sessionData = await joinRoom(code);
   if (!sessionData) { showToast('Room not found'); return; }
-  closeJamModal();
+  closeJamPopup();
   updateRoomBadge();
   document.getElementById('urlInput').value = sessionData.url;
   state.pendingImport = {
@@ -160,7 +158,7 @@ async function _joinAndLoad(code) {
 
 function handleLeaveRoom() {
   leaveRoom();
-  closeJamModal();
+  closeJamPopup();
   updateRoomBadge();
   showToast('Left the room');
 }
@@ -222,12 +220,13 @@ function init() {
   document.getElementById('djModeBtn').addEventListener('click',     () => setView('dj'));
 
   // Jam room
-  const jamBtn = document.getElementById('jamBtn');
   if (isRoomConfigured()) {
-    jamBtn.style.display = '';
-    jamBtn.addEventListener('click', openJamModal);
-    document.getElementById('jamBackdrop').addEventListener('click', closeJamModal);
-    document.getElementById('jamModalClose').addEventListener('click', closeJamModal);
+    document.getElementById('jamWrapper').style.display = '';
+    document.getElementById('jamBtn').addEventListener('click', toggleJamPopup);
+    // Close popup when clicking anywhere outside the jam wrapper
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#jamWrapper')) closeJamPopup();
+    });
     document.getElementById('jamCreateBtn').addEventListener('click', handleCreateRoom);
     document.getElementById('jamJoinBtn').addEventListener('click', handleJoinRoom);
     document.getElementById('jamCodeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoinRoom(); });
@@ -251,7 +250,7 @@ function init() {
       },
     });
   } else {
-    jamBtn.style.display = 'none';
+    document.getElementById('jamWrapper').style.display = 'none';
   }
 
   // Subsystems

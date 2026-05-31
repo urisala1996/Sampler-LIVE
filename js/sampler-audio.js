@@ -13,11 +13,13 @@ function getCtx() {
   return state.samplerAudioContext;
 }
 
-function stopSource() {
-  if (!state.samplerAudioSource) return;
-  try { state.samplerAudioSource.stop(0); } catch (_) {}
-  try { state.samplerAudioSource.disconnect(); } catch (_) {}
-  state.samplerAudioSource = null;
+// Module-level preview source — independent from pad playback
+let _previewSrc = null;
+function _stopPreviewSource() {
+  if (!_previewSrc) return;
+  try { _previewSrc.stop(0); } catch (_) {}
+  try { _previewSrc.disconnect(); } catch (_) {}
+  _previewSrc = null;
 }
 
 // ── File loading ──────────────────────────────────────────────────────────────
@@ -28,7 +30,8 @@ export async function loadSamplerFile(file) {
     const ctx = getCtx();
     const buf = await ctx.decodeAudioData(await file.arrayBuffer());
 
-    stopSource();
+    stopSamplerAudio();
+    _stopPreviewSource();
     state.samplerAudioBuffer = buf;
     state.samplerFileName    = file.name.replace(/\.[^.]+$/, '');
     state.songDuration       = buf.duration;
@@ -57,38 +60,63 @@ export async function loadSamplerFile(file) {
 
 // ── Playback ──────────────────────────────────────────────────────────────────
 
+// Starts a new source without stopping existing ones (polyphonic).
+// Returns the AudioBufferSourceNode so the caller can stop it individually.
 function startSource(offset, dur, when) {
-  stopSource();
   const ctx = getCtx();
   const src = ctx.createBufferSource();
   src.buffer = state.samplerAudioBuffer;
   src.connect(ctx.destination);
   src.start(when ?? 0, offset, dur);
-  state.samplerAudioSource = src;
+  src.onended = () => {
+    state.samplerAudioSources = state.samplerAudioSources.filter(s => s !== src);
+    try { src.disconnect(); } catch (_) {}
+  };
+  state.samplerAudioSources.push(src);
+  return src;
 }
 
 // fireAt: optional wall-clock timestamp (Date.now() ms) for scheduled sync.
-// When omitted the pad fires immediately.
+// Returns the AudioBufferSourceNode for per-pad tracking.
 export function triggerSamplerPad(offset, dur, fireAt) {
   const ctx  = getCtx();
   const when = (fireAt != null)
     ? ctx.currentTime + Math.max(0, (fireAt - Date.now()) / 1000)
     : 0;
-  startSource(offset, dur, when);
+  return startSource(offset, dur, when);
 }
 
+// Stop one specific pad source.
+export function stopSamplerPad(sourceNode) {
+  if (!sourceNode) return;
+  try { sourceNode.stop(0); } catch (_) {}
+  state.samplerAudioSources = state.samplerAudioSources.filter(s => s !== sourceNode);
+}
+
+// Stop all active pad sources.
 export function stopSamplerAudio() {
-  stopSource();
+  for (const src of state.samplerAudioSources) {
+    try { src.stop(0); } catch (_) {}
+    try { src.disconnect(); } catch (_) {}
+  }
+  state.samplerAudioSources = [];
 }
 
 // ── Editor preview ────────────────────────────────────────────────────────────
 
+// Preview is intentionally monophonic and independent from pad playback.
 export function previewSamplerSample(offset, dur) {
-  startSource(offset, dur);
+  _stopPreviewSource();
+  const ctx = getCtx();
+  const src = ctx.createBufferSource();
+  src.buffer = state.samplerAudioBuffer;
+  src.connect(ctx.destination);
+  src.start(0, offset, dur);
+  _previewSrc = src;
 }
 
 export function stopSamplerPreview() {
-  stopSource();
+  _stopPreviewSource();
 }
 
 // ── BPM auto-detection ────────────────────────────────────────────────────────

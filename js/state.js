@@ -14,11 +14,8 @@ export const state = {
   padDurations: [],  // per-pad durations (seconds), parallel to pads[]
   padCategories: [], // '' | 'rhythm' | 'melodic' | 'effect', parallel to pads[]
 
-  // Playback
-  currentPad: null,
-  padTimer: null,
-  padProgressInterval: null,
-  padStartTime: 0,
+  // Playback — per-pad tracking (polyphonic)
+  activePads: new Map(), // padIndex → { el, timer, interval, startTime, sourceNode }
 
   // UI
   editMode: false,
@@ -62,7 +59,7 @@ export const state = {
   samplerSource: 'youtube',      // 'youtube' | 'file'
   samplerAudioBuffer: null,      // decoded AudioBuffer for file mode
   samplerAudioContext: null,     // AudioContext (lazy init)
-  samplerAudioSource: null,      // current AudioBufferSourceNode
+  samplerAudioSources: [],       // active AudioBufferSourceNodes (polyphonic)
   samplerFileName: '',           // display name (no extension)
 
   // Jam room

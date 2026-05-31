@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { formatTime } from './utils.js';
 import { icon } from './icons.js';
-import { triggerSamplerPad, stopSamplerAudio } from './sampler-audio.js';
+import { triggerSamplerPad, stopSamplerAudio, stopSamplerPad } from './sampler-audio.js';
 import { broadcastEvent, LOOKAHEAD_MS } from './room.js';
 
 // Injected by main.js to avoid circular dep with editor.js
@@ -102,9 +102,10 @@ export function updatePadTimeLabel(index) {
 // ── Distribution ──────────────────────────────────────────────────────────────
 
 export function smartDistributePads(points) {
-  state.padCount     = points.length;
-  state.pads         = points.map(p => p.start);
-  state.padDurations = points.map(p => p.dur);
+  stopAll();
+  state.padCount      = points.length;
+  state.pads          = points.map(p => p.start);
+  state.padDurations  = points.map(p => p.dur);
   state.padCategories = new Array(points.length).fill('');
   document.getElementById('padCountVal').textContent = state.padCount;
   renderPads();
@@ -112,6 +113,7 @@ export function smartDistributePads(points) {
 
 export function distributePads() {
   if (!state.songLoaded) return;
+  stopAll();
   const margin = state.songDuration * 0.05;
   const usable = state.songDuration - margin * 2;
   const step = usable / state.padCount;
@@ -133,9 +135,17 @@ export function triggerPad(index, padEl, remote = false, fireAt = null) {
   if (!state.songLoaded) return;
   if (state.samplerSource === 'youtube' && !state.player) return;
   if (state.samplerSource === 'file'    && !state.samplerAudioBuffer) return;
-  clearPadState();
 
-  state.currentPad = { index, el: padEl };
+  // File mode: tap-to-toggle — tapping a playing pad stops just that pad
+  if (state.samplerSource === 'file' && state.activePads.has(index) && !remote) {
+    stopPad(index);
+    if (state.roomActive) broadcastEvent('pad_stop', { index });
+    return;
+  }
+
+  // YouTube mode is monophonic — clear all active pads before starting a new one
+  if (state.samplerSource === 'youtube') _clearAllPads();
+
   padEl.classList.add('playing');
 
   const seekTo = state.pads[index];
@@ -147,33 +157,45 @@ export function triggerPad(index, padEl, remote = false, fireAt = null) {
     resolvedFireAt = remote ? fireAt : _computeFireAt();
   }
 
-  // padStartTime = when audio fires (for progress bar alignment)
-  state.padStartTime = resolvedFireAt ?? Date.now();
+  const startTime  = resolvedFireAt ?? Date.now();
+  const totalMs    = dur * 1000;
+  const audioDelay = resolvedFireAt ? Math.max(0, resolvedFireAt - Date.now()) : 0;
 
+  let sourceNode = null;
   if (state.samplerSource === 'file') {
-    triggerSamplerPad(seekTo, dur, resolvedFireAt);
+    sourceNode = triggerSamplerPad(seekTo, dur, resolvedFireAt);
   } else {
     state.player.seekTo(seekTo, true);
     state.player.playVideo();
   }
 
-  document.getElementById('statusDot').className = 'status-dot playing';
-  document.getElementById('playingPad').textContent = `PAD ${index + 1} · ${formatTime(seekTo)}`;
-  const stopBtn = document.getElementById('stopBtn');
-  stopBtn.className = 'stop-btn active';
-  stopBtn.innerHTML = icon('stop', 14);
-
   const bar = document.getElementById('bar' + index);
-  const totalMs  = dur * 1000;
-  const audioDelay = resolvedFireAt ? Math.max(0, resolvedFireAt - Date.now()) : 0;
-  state.padProgressInterval = setInterval(() => {
-    const pct = Math.max(0, Math.min(100, ((Date.now() - state.padStartTime) / totalMs) * 100));
+  const interval = setInterval(() => {
+    const pct = Math.max(0, Math.min(100, ((Date.now() - startTime) / totalMs) * 100));
     if (bar) bar.style.width = pct + '%';
   }, 50);
 
-  state.padTimer = setTimeout(() => stopAll(), totalMs + audioDelay);
+  const timer = setTimeout(() => stopPad(index), totalMs + audioDelay);
+
+  state.activePads.set(index, { el: padEl, timer, interval, startTime, sourceNode });
+  _updatePlayingUi();
+
   if (!remote && state.roomActive) broadcastEvent('pad_trigger', { index, fireAt: resolvedFireAt });
   if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// Stop a single pad by index (file or YouTube).
+export function stopPad(index) {
+  const pad = state.activePads.get(index);
+  if (!pad) return;
+  clearTimeout(pad.timer);
+  clearInterval(pad.interval);
+  if (pad.sourceNode) stopSamplerPad(pad.sourceNode);
+  const bar = document.getElementById('bar' + index);
+  if (bar) bar.style.width = '0%';
+  pad.el.classList.remove('playing');
+  state.activePads.delete(index);
+  _updatePlayingUi();
 }
 
 // Compute the next scheduled fire time (wall-clock ms).
@@ -191,26 +213,49 @@ function _computeFireAt() {
   return now + LOOKAHEAD_MS;
 }
 
-export function clearPadState() {
-  if (state.padTimer) { clearTimeout(state.padTimer); state.padTimer = null; }
-  if (state.padProgressInterval) { clearInterval(state.padProgressInterval); state.padProgressInterval = null; }
-  document.querySelectorAll('.pad.playing').forEach(p => p.classList.remove('playing'));
-  document.querySelectorAll('.pad-bar-fill').forEach(b => b.style.width = '0%');
-  state.currentPad = null;
+// Clear all pad tracking state (timers, DOM classes) without stopping audio.
+function _clearAllPads() {
+  for (const [idx, pad] of state.activePads) {
+    clearTimeout(pad.timer);
+    clearInterval(pad.interval);
+    pad.el.classList.remove('playing');
+    const bar = document.getElementById('bar' + idx);
+    if (bar) bar.style.width = '0%';
+  }
+  state.activePads.clear();
+}
+
+// Update transport UI to reflect how many pads are currently active.
+function _updatePlayingUi() {
+  const count   = state.activePads.size;
+  const statusDot = document.getElementById('statusDot');
+  const playingPad = document.getElementById('playingPad');
+  const stopBtn = document.getElementById('stopBtn');
+  stopBtn.innerHTML = icon('stop', 14);
+  if (count === 0) {
+    statusDot.className = state.songLoaded ? 'status-dot ready' : 'status-dot';
+    playingPad.textContent = '—';
+    stopBtn.className = 'stop-btn';
+  } else {
+    statusDot.className = 'status-dot playing';
+    stopBtn.className = 'stop-btn active';
+    if (count === 1) {
+      const [idx] = state.activePads.keys();
+      playingPad.textContent = `PAD ${idx + 1} · ${formatTime(state.pads[idx])}`;
+    } else {
+      playingPad.textContent = `${count} PLAYING`;
+    }
+  }
 }
 
 export function stopAll() {
-  clearPadState();
+  _clearAllPads();
   if (state.samplerSource === 'file') {
     stopSamplerAudio();
   } else if (state.player && state.player.pauseVideo) {
     state.player.pauseVideo();
   }
-  document.getElementById('statusDot').className = state.songLoaded ? 'status-dot ready' : 'status-dot';
-  document.getElementById('playingPad').textContent = '—';
-  const stopBtn = document.getElementById('stopBtn');
-  stopBtn.className = 'stop-btn';
-  stopBtn.innerHTML = icon('stop', 14);
+  _updatePlayingUi();
 }
 
 // ── Config controls ───────────────────────────────────────────────────────────

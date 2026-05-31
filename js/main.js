@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { loadYTScript, loadSong, markRemoteLoad } from './youtube.js';
-import { renderEmptyPads, updateDur, changePads, stopAll, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport, smartDistributePads } from './pads.js';
+import { renderEmptyPads, updateDur, changePads, stopAll, stopPad, triggerPad, setOpenEditorCallback, distributePads, restoreFromImport, smartDistributePads } from './pads.js';
 import { openEditor, initEditorEvents } from './editor.js';
 import { initKeyboard } from './keyboard.js';
 import { exportSession, triggerImportPicker, handleImportFile, setSamplerSourceCallback } from './session.js';
@@ -326,7 +326,10 @@ function init() {
         const padEl = document.querySelector(`.pad[data-index="${index}"]`);
         if (padEl) triggerPad(index, padEl, true, fireAt);
       },
-      onPadStop: () => stopAll(),
+      onPadStop: (payload = {}) => {
+        if (payload.index !== undefined) stopPad(payload.index);
+        else stopAll();
+      },
       onSessionUpdate: (data) => {
         state.roomBpm       = data.bpm      ?? state.roomBpm;
         state.roomBeatZero  = data.beatZero ?? state.roomBeatZero;

@@ -126,13 +126,14 @@ function finishLoad(dur, playerRef) {
 
   if (state.roomActive && !_remoteLoad) {
     broadcastEvent('session_update', {
-      source:      'youtube',
-      url:         document.getElementById('urlInput').value.trim(),
-      padCount:    state.padCount,
-      padDuration: state.padDuration,
-      pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
-      bpm:         state.roomBpm,
-      beatZero:    state.roomBeatZero,
+      source:        'youtube',
+      url:           document.getElementById('urlInput').value.trim(),
+      padCount:      state.padCount,
+      padDuration:   state.padDuration,
+      pads:          state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+      padCategories: state.padCategories,
+      bpm:           state.roomBpm,
+      beatZero:      state.roomBeatZero,
     });
   }
   _remoteLoad = false;

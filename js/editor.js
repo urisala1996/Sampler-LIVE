@@ -3,6 +3,7 @@ import { formatTime, formatTimeMs, showToast, clamp } from './utils.js';
 import { stopAll, updatePadTimeLabel } from './pads.js';
 import { icon } from './icons.js';
 import { previewSamplerSample, stopSamplerPreview } from './sampler-audio.js';
+import { broadcastEvent } from './room.js';
 
 // ── Open / close ──────────────────────────────────────────────────────────────
 
@@ -17,6 +18,8 @@ export function openEditor(padIndex) {
   document.getElementById('sheetTotalTime').textContent = formatTime(state.songDuration);
   document.getElementById('sheetBackdrop').className = 'sheet-backdrop show';
   document.getElementById('editorSheet').className = 'sheet show';
+
+  document.getElementById('padTypeSelect').value = state.padCategories[padIndex] ?? '';
 
   drawWaveform();
   renderOtherPadMarkers();
@@ -34,10 +37,33 @@ export function closeEditor() {
 
 export function confirmSamplePoint() {
   if (state.editorPadIndex < 0) return;
-  state.pads[state.editorPadIndex] = state.editorCurrentTime;
-  state.padDurations[state.editorPadIndex] = state.editorCurrentDuration;
-  updatePadTimeLabel(state.editorPadIndex);
-  showToast(`PAD ${state.editorPadIndex + 1} → ${formatTimeMs(state.editorCurrentTime)} / ${state.editorCurrentDuration}s`, 'success');
+  const idx = state.editorPadIndex;
+  state.pads[idx]         = state.editorCurrentTime;
+  state.padDurations[idx] = state.editorCurrentDuration;
+  const cat = document.getElementById('padTypeSelect').value;
+  state.padCategories[idx] = cat;
+
+  // Update pad DOM in-place
+  const padEl = document.querySelector(`.pad[data-index="${idx}"]`);
+  if (padEl) {
+    padEl.className = 'pad loaded' + (cat ? ` cat-${cat}` : '');
+    let catEl = padEl.querySelector('.pad-category');
+    if (cat) {
+      if (!catEl) {
+        catEl = document.createElement('div');
+        catEl.className = 'pad-category';
+        padEl.insertBefore(catEl, padEl.querySelector('.pad-bar'));
+      }
+      catEl.textContent = cat.toUpperCase();
+    } else if (catEl) {
+      catEl.remove();
+    }
+  }
+
+  if (state.roomActive) broadcastEvent('category_update', { index: idx, category: cat });
+
+  updatePadTimeLabel(idx);
+  showToast(`PAD ${idx + 1} → ${formatTimeMs(state.editorCurrentTime)} / ${state.editorCurrentDuration}s`, 'success');
   closeEditor();
 }
 

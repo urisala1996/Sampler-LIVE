@@ -34,7 +34,7 @@ let _unsubEvents     = null;
 let _unsubPresence   = null;
 let _presenceNodeRef   = null;
 let _participantCount  = 0;
-let _handlers = { onPadTrigger: () => {}, onPadStop: () => {}, onSessionUpdate: () => {}, onBpmUpdate: () => {} };
+let _handlers = { onPadTrigger: () => {}, onPadStop: () => {}, onSessionUpdate: () => {}, onBpmUpdate: () => {}, onCategoryUpdate: () => {} };
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -122,7 +122,8 @@ function _subscribeEvents(code) {
       case 'pad_trigger':    _handlers.onPadTrigger(ev.payload.index, ev.payload.fireAt); break;
       case 'pad_stop':       _handlers.onPadStop(); break;
       case 'session_update': _handlers.onSessionUpdate(ev.payload); break;
-      case 'bpm_update':     _handlers.onBpmUpdate(ev.payload); break;
+      case 'bpm_update':      _handlers.onBpmUpdate(ev.payload); break;
+      case 'category_update': _handlers.onCategoryUpdate(ev.payload); break;
     }
   });
 }

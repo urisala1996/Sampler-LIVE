@@ -269,6 +269,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px;
 .pad.loaded { border-color: var(--surface3); background: var(--surface); }
 .pad.pressed::before { opacity: 0.06; }
 .pad.pressed { transform: scale(0.96); }
+.pad.cat-rhythm  { background: #fff2e8; border-color: #f5d0b0; }
+.pad.cat-melodic { background: #e8f0ff; border-color: #b0c8f5; }
+.pad.cat-effect  { background: #e8fff4; border-color: #b0f5d0; }
+.pad-category { font: 700 7px/1 'Space Mono', monospace; letter-spacing: .1em; z-index: 1; }
+.pad.cat-rhythm  .pad-category { color: #b85a00; }
+.pad.cat-melodic .pad-category { color: #1a5db8; }
+.pad.cat-effect  .pad-category { color: #008a40; }
+
 .pad.playing { border-color: var(--pad-playing); background: var(--surface); animation: pad-play 0.35s ease; }
 .pad.playing::before { opacity: 0.04; background: var(--pad-playing); }
 @keyframes pad-play { 0%{transform:scale(0.96)} 60%{transform:scale(1.01)} 100%{transform:scale(1)} }
@@ -393,6 +401,20 @@ body.edit-mode .pad.loaded .pad-edit-icon { display: flex; }
 }
 .pad-marker { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(15,14,12,0.12); pointer-events: none; }
 .timeline-time { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 10px; letter-spacing: 0.04em; }
+
+/* Pad type selector */
+.pad-type-row { display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-top: 1px solid var(--border); }
+.pad-type-label { font: 700 9px/1 'Space Mono', monospace; letter-spacing: .1em; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; }
+.pad-type-select {
+  flex: 1; font: 700 11px/1 'Space Mono', monospace; letter-spacing: .06em;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); padding: 7px 28px 7px 10px; outline: none; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239e9891' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  transition: border-color var(--t-fast);
+}
+.pad-type-select:focus { border-color: var(--accent); }
 
 /* Fine tune */
 .fine-tune { display: flex; align-items: center; gap: 6px; padding: 8px 20px; }

@@ -41,13 +41,15 @@ export function renderPads() {
   grid.innerHTML = '';
 
   state.pads.forEach((startSec, i) => {
+    const cat = state.padCategories[i] || '';
     const pad = document.createElement('div');
-    pad.className = 'pad loaded';
+    pad.className = 'pad loaded' + (cat ? ` cat-${cat}` : '');
     pad.dataset.index = i;
     pad.innerHTML = `
       <div class="pad-num">P${String(i + 1).padStart(2, '0')}</div>
       <div class="pad-edit-icon">${icon('pencil', 10)}</div>
       <div class="pad-time" id="padtime${i}">${formatTime(startSec)}</div>
+      ${cat ? `<div class="pad-category">${cat.toUpperCase()}</div>` : ''}
       <div class="pad-bar"><div class="pad-bar-fill" id="bar${i}"></div></div>
     `;
 
@@ -103,6 +105,7 @@ export function smartDistributePads(points) {
   state.padCount     = points.length;
   state.pads         = points.map(p => p.start);
   state.padDurations = points.map(p => p.dur);
+  state.padCategories = new Array(points.length).fill('');
   document.getElementById('padCountVal').textContent = state.padCount;
   renderPads();
 }
@@ -114,6 +117,7 @@ export function distributePads() {
   const step = usable / state.padCount;
   state.pads = [];
   state.padDurations = [];
+  state.padCategories = new Array(state.padCount).fill('');
   for (let i = 0; i < state.padCount; i++) {
     state.pads.push(margin + step * i + step * 0.1);
     state.padDurations.push(state.padDuration);
@@ -214,9 +218,10 @@ export function stopAll() {
 export function restoreFromImport() {
   const imp = state.pendingImport;
   state.pendingImport = null;
-  state.padCount = imp.padCount;
-  state.pads = imp.pads;
+  state.padCount     = imp.padCount;
+  state.pads         = imp.pads;
   state.padDurations = imp.padDurations;
+  state.padCategories = imp.padCategories ?? new Array(imp.padCount).fill('');
   document.getElementById('padCountVal').textContent = state.padCount;
   renderPads();
 }

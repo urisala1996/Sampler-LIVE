@@ -20,9 +20,10 @@ export function exportSession() {
     dur:   Math.round((state.padDurations[i] ?? state.padDuration) * 10) / 10,
   }));
 
+  const padCategories = state.padCategories.length ? state.padCategories : [];
   const data = isFile
-    ? { source: 'file', filename: state.samplerFileName, pads }
-    : { source: 'youtube', url: document.getElementById('urlInput').value.trim(), pads };
+    ? { source: 'file', filename: state.samplerFileName, pads, padCategories }
+    : { source: 'youtube', url: document.getElementById('urlInput').value.trim(), pads, padCategories };
 
   const slug = isFile
     ? state.samplerFileName
@@ -58,6 +59,7 @@ export function handleImportFile(file) {
         padCount:     data.pads.length,
         pads:         data.pads.map(p => Number(p.start)),
         padDurations: data.pads.map(p => Number(p.dur)),
+        padCategories: data.padCategories ?? new Array(data.pads.length).fill(''),
       };
 
       const source = data.source ?? 'youtube';  // backwards compat with old sessions

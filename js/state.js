@@ -12,6 +12,7 @@ export const state = {
   padDuration: 2,
   pads: [],          // array of start times (seconds)
   padDurations: [],  // per-pad durations (seconds), parallel to pads[]
+  padCategories: [], // '' | 'rhythm' | 'melodic' | 'effect', parallel to pads[]
 
   // Playback
   currentPad: null,

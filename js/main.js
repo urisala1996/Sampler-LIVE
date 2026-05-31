@@ -23,10 +23,11 @@ function setSamplerSource(src) {
   document.getElementById('fileRow').style.display = isFile ? ''     : 'none';
 
   // Reset shared song state on source switch
-  state.songLoaded   = false;
-  state.songDuration = 0;
-  state.pads         = [];
-  state.padDurations = [];
+  state.songLoaded    = false;
+  state.songDuration  = 0;
+  state.pads          = [];
+  state.padDurations  = [];
+  state.padCategories = [];
   state.pendingImport = null;
 
   if (isFile) {
@@ -114,13 +115,14 @@ async function handleCreateRoom() {
     state.roomBeatZero  = beatZero;
     state.roomIsCreator = true;
     const code = await createRoom({
-      source:      state.samplerSource,
-      url:         isFile ? '' : document.getElementById('urlInput').value.trim(),
-      filename:    isFile ? state.samplerFileName : '',
-      padCount:    state.padCount,
-      padDuration: state.padDuration,
-      pads:        state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
-      bpm:         state.roomBpm,
+      source:        state.samplerSource,
+      url:           isFile ? '' : document.getElementById('urlInput').value.trim(),
+      filename:      isFile ? state.samplerFileName : '',
+      padCount:      state.padCount,
+      padDuration:   state.padDuration,
+      pads:          state.pads.map((s, i) => ({ start: s, dur: state.padDurations[i] ?? state.padDuration })),
+      padCategories: state.padCategories,
+      bpm:           state.roomBpm,
       beatZero,
     });
     document.getElementById('jamIdle').style.display   = 'none';
@@ -162,10 +164,13 @@ async function _joinAndLoad(code) {
   state.roomBeatZero  = sessionData.beatZero ?? 0;
   state.roomIsCreator = false;
 
+  const joinCats = sessionData.padCategories ?? new Array(sessionData.padCount).fill('');
+  state.padCategories = joinCats;
   state.pendingImport = {
-    padCount:     sessionData.padCount,
-    pads:         sessionData.pads.map(p => p.start),
-    padDurations: sessionData.pads.map(p => p.dur),
+    padCount:      sessionData.padCount,
+    pads:          sessionData.pads.map(p => p.start),
+    padDurations:  sessionData.pads.map(p => p.dur),
+    padCategories: joinCats,
   };
   document.getElementById('jamIdle').style.display   = 'none';
   document.getElementById('jamActive').style.display = '';
@@ -323,17 +328,38 @@ function init() {
       },
       onPadStop: () => stopAll(),
       onSessionUpdate: (data) => {
-        state.roomBpm      = data.bpm      ?? state.roomBpm;
-        state.roomBeatZero = data.beatZero ?? state.roomBeatZero;
+        state.roomBpm       = data.bpm      ?? state.roomBpm;
+        state.roomBeatZero  = data.beatZero ?? state.roomBeatZero;
+        const cats = data.padCategories ?? new Array(data.padCount).fill('');
+        state.padCategories = cats;
         _applyBpmUi(state.roomIsCreator);
         document.getElementById('urlInput').value = data.url;
         state.pendingImport = {
-          padCount:     data.padCount,
-          pads:         data.pads.map(p => p.start),
-          padDurations: data.pads.map(p => p.dur),
+          padCount:      data.padCount,
+          pads:          data.pads.map(p => p.start),
+          padDurations:  data.pads.map(p => p.dur),
+          padCategories: cats,
         };
         markRemoteLoad();
         loadSong();
+      },
+      onCategoryUpdate: ({ index, category }) => {
+        if (index < 0 || index >= state.padCount) return;
+        state.padCategories[index] = category;
+        const padEl = document.querySelector(`.pad[data-index="${index}"]`);
+        if (!padEl) return;
+        padEl.className = 'pad loaded' + (category ? ` cat-${category}` : '');
+        let catEl = padEl.querySelector('.pad-category');
+        if (category) {
+          if (!catEl) {
+            catEl = document.createElement('div');
+            catEl.className = 'pad-category';
+            padEl.insertBefore(catEl, padEl.querySelector('.pad-bar'));
+          }
+          catEl.textContent = category.toUpperCase();
+        } else if (catEl) {
+          catEl.remove();
+        }
       },
       onBpmUpdate: (data) => {
         state.roomBpm      = data.bpm      ?? 0;

@@ -60,13 +60,13 @@ export function renderPads() {
       e.preventDefault();
       didLongPress = false;
       pad.classList.add('pressed');
-      // Pre-seek: buffer the YouTube position on touch — reduces seek latency by ~100ms
-      if (!state.editMode && state.samplerSource === 'youtube' && state.player && state.songLoaded) {
-        state.player.seekTo(state.pads[i], true);
-      }
+
       if (!state.editMode) {
+        // Trigger immediately on press for low latency and reliable multi-touch
+        triggerPad(i, pad);
         pressTimer = setTimeout(() => {
           didLongPress = true;
+          stopPad(i);
           pad.classList.remove('pressed');
           if (navigator.vibrate) navigator.vibrate([10, 20, 30]);
           _openEditor(i);
@@ -77,10 +77,7 @@ export function renderPads() {
     pad.addEventListener('pointerup', () => {
       clearTimeout(pressTimer);
       pad.classList.remove('pressed');
-      if (!didLongPress) {
-        if (state.editMode) _openEditor(i);
-        else triggerPad(i, pad);
-      }
+      if (state.editMode && !didLongPress) _openEditor(i);
       didLongPress = false;
     });
 
@@ -184,13 +181,17 @@ export function triggerPad(index, padEl, remote = false, fireAt = null) {
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
-// Stop a single pad by index (file or YouTube).
+// Stop a single pad by index.
 export function stopPad(index) {
   const pad = state.activePads.get(index);
   if (!pad) return;
   clearTimeout(pad.timer);
   clearInterval(pad.interval);
-  if (pad.sourceNode) stopSamplerPad(pad.sourceNode);
+  if (pad.sourceNode) {
+    stopSamplerPad(pad.sourceNode);
+  } else if (state.samplerSource === 'youtube' && state.player?.pauseVideo) {
+    state.player.pauseVideo();
+  }
   const bar = document.getElementById('bar' + index);
   if (bar) bar.style.width = '0%';
   pad.el.classList.remove('playing');

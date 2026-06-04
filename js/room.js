@@ -1,19 +1,7 @@
 // ── Firebase setup ────────────────────────────────────────────────────────────
-// 1. Go to https://console.firebase.google.com → create a new project
-// 2. Add Realtime Database → Start in test mode
-//    (test mode rules allow public read/write — fine for a jam app)
-// 3. Go to Project Settings → General → Your apps → copy firebaseConfig
-// 4. Paste the values below, replacing the placeholder strings
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCLc5YhjHGBtazAjKBOLWk36xUlBSE4Je8",
-  authDomain: "sampler-live.firebaseapp.com",
-  databaseURL: "https://sampler-live-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "sampler-live",
-  storageBucket: "sampler-live.firebasestorage.app",
-  messagingSenderId: "9657302816",
-  appId: "1:9657302816:web:b154d0488899f1f90f6145",
-  measurementId: "G-0WRC2GG09G"
-};
+// Copy js/firebase-config.example.js → js/firebase-config.js and fill in your
+// Firebase project values. firebase-config.js is gitignored.
+import { FIREBASE_CONFIG } from './firebase-config.js';
 
 const CONFIGURED = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
 
